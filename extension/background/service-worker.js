@@ -8,6 +8,10 @@ import {
   POSITION_SAVE_INTERVAL_MS,
   SERVER_RETRY_INTERVAL_MS,
   SERVER_RETRY_MAX_ATTEMPTS,
+  PREFETCH_BUFFER_SIZE,
+  ADAPTIVE_SLOW_RATIO,
+  ADAPTIVE_MIN_CHUNK,
+  ADAPTIVE_MAX_CHUNK,
 } from '../utils/constants.js';
 import { TtsClient } from '../utils/tts-client.js';
 import { extractText } from '../content/pdf-extractor.js';
@@ -36,16 +40,24 @@ const state = {
   speed: DEFAULT_SPEED,
   voice: DEFAULT_VOICE,
   serverOnline: false,
-  pendingAudio: null,
   error: null,
   sections: [],
   chunkSectionMap: [],
 };
 
+const audioBuffer = new Map();
+let _prefetchAbort = null;
 let _positionSaveTimer = null;
 let _serverRetryTimer = null;
 let _serverRetryCount = 0;
 let _pendingResumeChunk = null;
+
+const perfMetrics = {
+  samples: [],
+  avgGenMs: 0,
+  avgPlayMs: 0,
+  adaptedChunkTarget: 300,
+};
 
 function resetState() {
   state.status = STATUS.IDLE;
@@ -54,13 +66,21 @@ function resetState() {
   state.chunks = [];
   state.currentChunk = 0;
   state.totalChunks = 0;
-  state.pendingAudio = null;
   state.error = null;
   state.sections = [];
   state.chunkSectionMap = [];
+  clearAudioBuffer();
   _pendingResumeChunk = null;
   stopPositionSave();
   stopServerRetry();
+}
+
+function clearAudioBuffer() {
+  audioBuffer.clear();
+  if (_prefetchAbort) {
+    _prefetchAbort.abort();
+    _prefetchAbort = null;
+  }
 }
 
 function getCurrentSection() {
@@ -302,7 +322,10 @@ async function handlePlay() {
     }
 
     const sentences = splitIntoSentences(fullText);
-    state.chunks = groupIntoChunks(sentences);
+    const chunkTarget = getAdaptedChunkTarget();
+    state.chunks = groupIntoChunks(
+      sentences, chunkTarget, chunkTarget + 200
+    );
     state.totalChunks = state.chunks.length;
     state.currentChunk = 0;
     state.sections = sections || [];
@@ -366,9 +389,64 @@ function handleResumeDecline() {
   fetchAndSendChunk(0);
 }
 
+async function fetchAudio(index) {
+  if (audioBuffer.has(index)) return audioBuffer.get(index);
+
+  const text = state.chunks[index];
+  const result = await tts.synthesize(text, {
+    voice: state.voice,
+    speed: state.speed,
+  });
+
+  recordMetrics(result.metrics);
+  audioBuffer.set(index, result.audioBase64);
+
+  const staleKeys = [];
+  for (const key of audioBuffer.keys()) {
+    if (key < state.currentChunk - 1) staleKeys.push(key);
+  }
+  for (const key of staleKeys) audioBuffer.delete(key);
+
+  return result.audioBase64;
+}
+
+function fillBuffer(startIndex) {
+  if (_prefetchAbort) _prefetchAbort.abort();
+  _prefetchAbort = new AbortController();
+
+  const end = Math.min(
+    startIndex + PREFETCH_BUFFER_SIZE, state.totalChunks
+  );
+
+  for (let i = startIndex; i < end; i++) {
+    if (audioBuffer.has(i)) continue;
+    const idx = i;
+    const text = state.chunks[idx];
+    tts.synthesize(text, {
+      voice: state.voice,
+      speed: state.speed,
+      signal: _prefetchAbort.signal,
+    }).then((result) => {
+      if (state.status === STATUS.IDLE) return;
+      recordMetrics(result.metrics);
+      audioBuffer.set(idx, result.audioBase64);
+      console.log(
+        `[SW] Buffered chunk ${idx + 1}`
+        + ` (buf=${audioBuffer.size})`
+      );
+    }).catch((err) => {
+      if (err.code === 'synthesis_cancelled') return;
+      console.warn(
+        `[SW] Buffer ${idx + 1} failed:`, err.message
+      );
+    });
+  }
+}
+
 async function fetchAndSendChunk(index) {
   if (index >= state.totalChunks) {
     console.log('[SW] All chunks played');
+    logPerfSummary();
     if (state.pdfUrl) clearPosition(state.pdfUrl);
     resetState();
     broadcastStatus();
@@ -376,25 +454,13 @@ async function fetchAndSendChunk(index) {
     return;
   }
 
-  const text = state.chunks[index];
   console.log(
-    `[SW] Fetching chunk ${index + 1}/${state.totalChunks}`
-    + ` (${text.length} chars)`
+    `[SW] Chunk ${index + 1}/${state.totalChunks}`
+    + ` (buf=${audioBuffer.size})`
   );
 
   try {
-    let audioBase64;
-
-    if (state.pendingAudio
-      && index === state.currentChunk + 1) {
-      audioBase64 = state.pendingAudio;
-      state.pendingAudio = null;
-    } else {
-      audioBase64 = await tts.synthesize(text, {
-        voice: state.voice,
-        speed: state.speed,
-      });
-    }
+    const audioBase64 = await fetchAudio(index);
 
     if (state.status === STATUS.IDLE) return;
 
@@ -418,7 +484,7 @@ async function fetchAndSendChunk(index) {
       setError('send_failed', 'Lost connection to PDF tab');
     });
 
-    prefetchNext(index + 1);
+    fillBuffer(index + 1);
   } catch (err) {
     console.error('[SW] Chunk fetch failed:', err.message);
 
@@ -442,21 +508,79 @@ async function fetchAndSendChunk(index) {
   }
 }
 
-async function prefetchNext(index) {
-  if (index >= state.totalChunks) return;
+// --- Performance metrics & adaptive chunking ---
 
-  try {
-    state.pendingAudio = await tts.synthesize(
-      state.chunks[index],
-      { voice: state.voice, speed: state.speed }
-    );
-    console.log(`[SW] Pre-fetched chunk ${index + 1}`);
-  } catch (err) {
-    console.warn(
-      '[SW] Pre-fetch failed (non-fatal):', err.message
-    );
-    state.pendingAudio = null;
+function recordMetrics(metrics) {
+  perfMetrics.samples.push(metrics);
+  if (perfMetrics.samples.length > 20) {
+    perfMetrics.samples.shift();
   }
+
+  const genTimes = perfMetrics.samples.map(
+    (s) => s.generationMs
+  );
+  perfMetrics.avgGenMs = genTimes.reduce(
+    (a, b) => a + b, 0
+  ) / genTimes.length;
+
+  const playTimes = perfMetrics.samples
+    .filter((s) => s.audioSizeBytes > 0)
+    .map((s) => estimatePlaybackMs(s));
+  if (playTimes.length > 0) {
+    perfMetrics.avgPlayMs = playTimes.reduce(
+      (a, b) => a + b, 0
+    ) / playTimes.length;
+  }
+
+  adaptChunkSize();
+}
+
+function estimatePlaybackMs(metrics) {
+  const mp3BytesPerSec = 16000;
+  return (metrics.audioSizeBytes / mp3BytesPerSec) * 1000;
+}
+
+function adaptChunkSize() {
+  if (perfMetrics.samples.length < 3) return;
+
+  const ratio = perfMetrics.avgGenMs
+    / (perfMetrics.avgPlayMs || 1);
+
+  let newTarget = perfMetrics.adaptedChunkTarget;
+
+  if (ratio > ADAPTIVE_SLOW_RATIO) {
+    newTarget = Math.min(
+      newTarget + 50, ADAPTIVE_MAX_CHUNK
+    );
+    console.log(
+      `[Perf] Server slow (ratio=${ratio.toFixed(2)}),`
+      + ` increasing chunk to ${newTarget}`
+    );
+  } else if (ratio < 0.2) {
+    newTarget = Math.max(
+      newTarget - 50, ADAPTIVE_MIN_CHUNK
+    );
+    console.log(
+      `[Perf] Server fast (ratio=${ratio.toFixed(2)}),`
+      + ` decreasing chunk to ${newTarget}`
+    );
+  }
+
+  perfMetrics.adaptedChunkTarget = newTarget;
+}
+
+function getAdaptedChunkTarget() {
+  return perfMetrics.adaptedChunkTarget;
+}
+
+function logPerfSummary() {
+  if (perfMetrics.samples.length === 0) return;
+  console.log(
+    `[Perf] Summary: avgGen=${perfMetrics.avgGenMs.toFixed(0)}ms`
+    + ` avgPlay=${perfMetrics.avgPlayMs.toFixed(0)}ms`
+    + ` chunkTarget=${perfMetrics.adaptedChunkTarget}`
+    + ` samples=${perfMetrics.samples.length}`
+  );
 }
 
 function handlePause() {
@@ -501,7 +625,6 @@ function handleSkipForward() {
       state.tabId, { type: MSG.STOP, payload: {} }
     ).catch(() => {});
   }
-  state.pendingAudio = null;
   const next = Math.min(
     state.currentChunk + 1, state.totalChunks - 1
   );
@@ -516,14 +639,14 @@ function handleSkipBack() {
       state.tabId, { type: MSG.STOP, payload: {} }
     ).catch(() => {});
   }
-  state.pendingAudio = null;
+  clearAudioBuffer();
   const prev = Math.max(state.currentChunk - 1, 0);
   fetchAndSendChunk(prev);
 }
 
 function handleSetSpeed(speed) {
   state.speed = speed;
-  state.pendingAudio = null;
+  clearAudioBuffer();
   chrome.storage.local.set({ speed });
   broadcastStatus();
   console.log(`[SW] Speed set to ${speed}x`);
@@ -531,7 +654,7 @@ function handleSetSpeed(speed) {
 
 function handleSetVoice(voice) {
   state.voice = voice;
-  state.pendingAudio = null;
+  clearAudioBuffer();
   chrome.storage.local.set({ voice });
   broadcastStatus();
   console.log(`[SW] Voice set to ${voice}`);
@@ -558,7 +681,7 @@ function handleJumpToSection(sectionIndex) {
       state.tabId, { type: MSG.STOP, payload: {} }
     ).catch(() => {});
   }
-  state.pendingAudio = null;
+  clearAudioBuffer();
   const chunkIndex = state.chunkSectionMap.indexOf(
     sectionIndex
   );
