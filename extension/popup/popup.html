@@ -7,13 +7,14 @@
 <body>
   <div class="popup__accent-bar"></div>
   <div class="popup">
-    <h1 class="popup__title">
-      <span class="popup__title-dot"></span>Speakademic
-    </h1>
-
-    <div id="server-status" class="popup__server-status">
-      <span class="status-dot status-dot--checking" id="status-dot"></span>
-      <span id="server-text">Checking server...</span>
+    <div class="popup__header">
+      <h1 class="popup__title">
+        <span class="popup__title-dot"></span>Speakademic
+      </h1>
+      <div id="server-status" class="popup__server-status">
+        <span class="status-dot status-dot--checking" id="status-dot"></span>
+        <span id="server-text">Checking&hellip;</span>
+      </div>
     </div>
 
     <div id="pdf-info" class="popup__pdf-info" hidden>
@@ -29,15 +30,15 @@
       </button>
       <button id="btn-play" class="popup__btn popup__btn--primary"
         title="Play">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polygon points="6 3 20 12 6 21 6 3" fill="currentColor"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polygon points="7 3 21 12 7 21 7 3" fill="currentColor"/></svg>
       </button>
       <button id="btn-pause" class="popup__btn"
         title="Pause" disabled>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor"/><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="6" y="4" width="4" height="16" rx="1.5" fill="currentColor"/><rect x="14" y="4" width="4" height="16" rx="1.5" fill="currentColor"/></svg>
       </button>
       <button id="btn-stop" class="popup__btn"
         title="Stop" disabled>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="3" fill="currentColor"/></svg>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="3.5" fill="currentColor"/></svg>
       </button>
       <button id="btn-skip-fwd" class="popup__btn popup__btn--sm"
         title="Skip forward" disabled>
@@ -64,18 +65,20 @@
 
     <div id="section-nav" class="popup__section-nav" hidden>
       <select id="section-select" class="popup__select">
-        <option value="">Jump to section...</option>
+        <option value="">Jump to section&hellip;</option>
       </select>
     </div>
 
     <div id="error" class="popup__error" hidden></div>
 
+    <div class="popup__divider"></div>
+
     <div class="popup__footer">
       <span class="popup__shortcut-hint">
         <kbd>Space</kbd> play/pause
-        &middot;
+        <span class="popup__shortcut-sep">&bull;</span>
         <kbd>&larr;</kbd><kbd>&rarr;</kbd> skip
-        &middot;
+        <span class="popup__shortcut-sep">&bull;</span>
         <kbd>&uarr;</kbd><kbd>&darr;</kbd> speed
       </span>
     </div>
