@@ -321,16 +321,10 @@ async function extractPdfText(url) {
 
 async function injectContentScript(tabId) {
   try {
-    await chrome.scripting.insertCSS({
-      target: { tabId },
-      files: ['content/overlay-player.css'],
-    });
     await chrome.scripting.executeScript({
       target: { tabId },
       files: [
         'utils/audio-player.js',
-        'content/icons.js',
-        'content/overlay-player.js',
         'content/content-script.js',
       ],
     });
