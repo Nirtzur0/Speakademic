@@ -14,7 +14,6 @@ import {
   ADAPTIVE_MAX_CHUNK,
 } from '../utils/constants.js';
 import { TtsClient } from '../utils/tts-client.js';
-import { extractText } from '../content/pdf-extractor.js';
 import {
   splitIntoSentences,
   groupIntoChunks,
@@ -275,6 +274,49 @@ async function extractWebText(tabId) {
   });
 }
 
+// --- PDF extraction via offscreen document ---
+
+async function extractPdfText(url) {
+  const contexts = await chrome.runtime.getContexts({
+    contextTypes: ['OFFSCREEN_DOCUMENT'],
+  });
+
+  if (contexts.length === 0) {
+    await chrome.offscreen.createDocument({
+      url: 'offscreen/offscreen.html',
+      reasons: ['WORKERS'],
+      justification:
+        'PDF text extraction requires Web Workers (pdf.js)',
+    });
+  }
+
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      chrome.runtime.onMessage.removeListener(listener);
+      reject(new Error(
+        'PDF extraction timed out.'
+        + ' The file may be too large or inaccessible.'
+      ));
+    }, 30000);
+
+    function listener(msg) {
+      if (msg.type !== 'PDF_EXTRACTED') return;
+      clearTimeout(timeout);
+      chrome.runtime.onMessage.removeListener(listener);
+      if (msg.error) {
+        const err = new Error(msg.error.message);
+        err.code = msg.error.code;
+        reject(err);
+      } else {
+        resolve(msg.result);
+      }
+    }
+
+    chrome.runtime.onMessage.addListener(listener);
+    chrome.runtime.sendMessage({ type: 'EXTRACT_PDF', url });
+  });
+}
+
 // --- Content script injection ---
 
 async function injectContentScript(tabId) {
@@ -384,7 +426,7 @@ async function handlePlay() {
   try {
     let result;
     if (isPdfUrl(tab.url)) {
-      result = await extractText(tab.url);
+      result = await extractPdfText(tab.url);
     } else {
       result = await extractWebText(tab.id);
     }

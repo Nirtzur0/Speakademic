@@ -10,7 +10,8 @@ import {
   findReferencesStart,
 } from './section-detector.js';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  chrome.runtime.getURL('lib/pdf.worker.mjs');
 
 class PdfError extends Error {
   constructor(code, message, cause) {
