@@ -144,14 +144,50 @@ function cleanEquations(items) {
 function cleanSpecialContent(text) {
   let cleaned = text;
 
+  // 1. Normalize PDF ligature codepoints
+  cleaned = cleaned
+    .replace(/\ufb00/g, 'ff')
+    .replace(/\ufb01/g, 'fi')
+    .replace(/\ufb02/g, 'fl')
+    .replace(/\ufb03/g, 'ffi')
+    .replace(/\ufb04/g, 'ffl');
+
+  // 2. Rejoin words hyphenated across line breaks
+  //    "exam- ination" → "examination"
+  //    Preserves "well-known" (no space after hyphen)
+  cleaned = cleaned.replace(/(\w)-\s+([a-z])/g, '$1$2');
+
+  // 3. Replace long URLs with "link"
   cleaned = cleaned.replace(URL_PATTERN, 'link');
 
+  // 4. Deduplicate equation markers
   cleaned = cleaned.replace(
     /\[equation\]\s*\[equation\]/g,
     '[equation]'
   );
 
-  cleaned = cleaned.replace(/\s{2,}/g, ' ');
+  // 5. Normalize whitespace characters
+  cleaned = cleaned
+    .replace(/\t/g, ' ')
+    .replace(/\u00A0/g, ' ')
+    .replace(/\u200B/g, '')
+    .replace(/\u200C/g, '')
+    .replace(/\u200D/g, '')
+    .replace(/\uFEFF/g, '')
+    .replace(/\s{2,}/g, ' ');
+
+  // 6. TTS-friendly symbol replacements
+  cleaned = cleaned
+    .replace(/(\d)%/g, '$1 percent')
+    .replace(/(\d)°\s*C\b/g, '$1 degrees Celsius')
+    .replace(/(\d)°\s*F\b/g, '$1 degrees Fahrenheit')
+    .replace(/(\d)°/g, '$1 degrees')
+    .replace(/±/g, ' plus or minus ')
+    .replace(/≈/g, ' approximately ')
+    .replace(/≤/g, ' less than or equal to ')
+    .replace(/≥/g, ' greater than or equal to ')
+    .replace(/→/g, ' leads to ')
+    .replace(/←/g, ' from ');
 
   return cleaned.trim();
 }

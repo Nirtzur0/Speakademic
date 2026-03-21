@@ -219,6 +219,62 @@ async function retryServerConnection() {
   }
 }
 
+// --- URL type detection ---
+
+function isPdfUrl(url) {
+  if (!url) return false;
+  try {
+    const path = new URL(url).pathname.toLowerCase();
+    if (path.endsWith('.pdf')) return true;
+  } catch {
+    // invalid URL
+  }
+  if (url.includes('.pdf?') || url.includes('.pdf#')) {
+    return true;
+  }
+  if (url.startsWith('chrome-extension://')
+    && url.includes('pdf')) return true;
+  return false;
+}
+
+async function extractWebText(tabId) {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      chrome.runtime.onMessage.removeListener(listener);
+      reject(new Error(
+        'Web text extraction timed out.'
+        + ' The page may not contain readable content.'
+      ));
+    }, 15000);
+
+    function listener(msg, sender) {
+      if (msg.type === MSG.TEXT_EXTRACTED
+        && sender.tab?.id === tabId) {
+        clearTimeout(timeout);
+        chrome.runtime.onMessage.removeListener(listener);
+        resolve(msg.payload);
+      }
+    }
+
+    chrome.runtime.onMessage.addListener(listener);
+
+    chrome.scripting.executeScript({
+      target: { tabId },
+      files: [
+        'lib/Readability.js',
+        'content/web-extractor.js',
+      ],
+    }).catch((err) => {
+      clearTimeout(timeout);
+      chrome.runtime.onMessage.removeListener(listener);
+      reject(new Error(
+        'Cannot access this page. '
+        + err.message
+      ));
+    });
+  });
+}
+
 // --- Content script injection ---
 
 async function injectContentScript(tabId) {
@@ -325,18 +381,30 @@ async function handlePlay() {
   broadcastStatus();
 
   try {
-    const result = await extractText(tab.url);
+    let result;
+    if (isPdfUrl(tab.url)) {
+      result = await extractText(tab.url);
+    } else {
+      result = await extractWebText(tab.id);
+    }
+
     const {
       fullText, sections, sectionCharOffsets, meta,
     } = result;
 
     if (!fullText || !fullText.trim()) {
-      const msg = meta?.isLikelyScanned
-        ? 'This PDF appears to be scanned/image-based.'
+      let msg;
+      if (meta?.source === 'web') {
+        msg = 'No readable article content found'
+          + ' on this page.';
+      } else if (meta?.isLikelyScanned) {
+        msg = 'This PDF appears to be scanned/image-based.'
           + ' Text extraction is not possible.'
           + ' Try a PDF with selectable text,'
-          + ' or use an OCR tool first.'
-        : 'No text found in this PDF.';
+          + ' or use an OCR tool first.';
+      } else {
+        msg = 'No text found in this document.';
+      }
       setError('no_text', msg);
       return;
     }
