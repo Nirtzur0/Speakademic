@@ -91,7 +91,11 @@ async function extractText(pdfUrl) {
   const referencesStart = findReferencesStart(sections);
 
   const textParts = [];
+  const sectionCharOffsets = [];
   let globalItemIndex = 0;
+  let charPos = 0;
+  let sectionPtr = 0;
+  let isFirstPage = true;
 
   for (const page of cleanedPages) {
     const pageTexts = [];
@@ -103,6 +107,15 @@ async function extractText(pdfUrl) {
       ) {
         break;
       }
+
+      while (
+        sectionPtr < sectionMap.length
+        && sectionMap[sectionPtr].itemIndex <= globalItemIndex
+      ) {
+        sectionCharOffsets.push(charPos);
+        sectionPtr++;
+      }
+
       pageTexts.push(item.text);
       globalItemIndex++;
     }
@@ -112,12 +125,20 @@ async function extractText(pdfUrl) {
       && globalItemIndex >= referencesStart
     ) {
       const text = pageTexts.join(' ').trim();
-      if (text) textParts.push(text);
+      if (text) {
+        textParts.push(text);
+        charPos += text.length;
+      }
       break;
     }
 
     const pageText = pageTexts.join(' ').trim();
-    if (pageText) textParts.push(pageText);
+    if (pageText) {
+      if (!isFirstPage) charPos += 2;
+      textParts.push(pageText);
+      charPos += pageText.length;
+      isFirstPage = false;
+    }
   }
 
   let fullText = textParts.join('\n\n');
@@ -133,6 +154,7 @@ async function extractText(pdfUrl) {
     pages: cleanedPages,
     fullText,
     sections: sectionMap,
+    sectionCharOffsets,
   };
 }
 

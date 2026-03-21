@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Kokoro PDF Reader Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="options">
+    <h1 class="options__title">Kokoro PDF Reader Settings</h1>
+
+    <div class="options__section">
+      <h2 class="options__section-title">Server</h2>
+      <label class="options__field">
+        <span class="options__label">Server URL</span>
+        <input type="text" id="server-url"
+          class="options__input"
+          placeholder="http://localhost:8880">
+      </label>
+      <div id="server-status" class="options__status">
+        <span class="options__status-dot" id="status-dot">
+        </span>
+        <span id="status-text">Checking...</span>
+      </div>
+    </div>
+
+    <div class="options__section">
+      <h2 class="options__section-title">Playback</h2>
+      <label class="options__field">
+        <span class="options__label">Default Speed</span>
+        <select id="default-speed" class="options__select">
+          <option value="0.75">0.75x</option>
+          <option value="1" selected>1.0x</option>
+          <option value="1.25">1.25x</option>
+          <option value="1.5">1.5x</option>
+          <option value="1.75">1.75x</option>
+          <option value="2">2.0x</option>
+        </select>
+      </label>
+      <label class="options__field">
+        <span class="options__label">Default Voice</span>
+        <select id="default-voice" class="options__select">
+          <option value="af_bella">Bella (American Female)</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="options__section">
+      <h2 class="options__section-title">Reading</h2>
+      <label class="options__field options__field--checkbox">
+        <input type="checkbox" id="auto-resume" checked>
+        <span class="options__label">
+          Auto-resume from last position
+        </span>
+      </label>
+      <label class="options__field options__field--checkbox">
+        <input type="checkbox" id="skip-references" checked>
+        <span class="options__label">
+          Skip References section
+        </span>
+      </label>
+      <label class="options__field options__field--checkbox">
+        <input type="checkbox" id="skip-equations">
+        <span class="options__label">
+          Skip equations (replace with silence)
+        </span>
+      </label>
+    </div>
+
+    <div class="options__actions">
+      <button id="btn-save" class="options__btn">
+        Save Settings
+      </button>
+      <span id="save-status" class="options__save-status">
+      </span>
+    </div>
+  </div>
+  <script src="options.js" type="module"></script>
+</body>
+</html>
