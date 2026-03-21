@@ -34,6 +34,7 @@ function detectSections(pages, bodyFontSize) {
           title,
           pageNum: page.pageNum,
           itemIndex: globalItemIndex,
+          fontSize,
           isReferences: REFERENCES_PATTERNS.some(
             (p) => p.test(title)
           ),

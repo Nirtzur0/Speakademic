@@ -63,11 +63,12 @@ To read local PDF files (`file://` URLs):
 
 ## Verify Everything Works
 
-1. Ensure the TTS server is running (green dot in popup)
+1. Ensure the TTS server is running
 2. Open any PDF in Chrome (try: https://arxiv.org/pdf/2301.00001)
 3. Click the extension icon
-4. Click Play
-5. You should hear the PDF read aloud
+4. The floating player appears on the page
+5. Click Play in the floating player
+6. You should hear the PDF read aloud
 
 ## Performance Notes
 

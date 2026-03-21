@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yml"
 SERVER_URL="http://localhost:8880"
+CONTAINER_NAME="kokoro-tts"
 MAX_WAIT=120
 POLL_INTERVAL=3
 
@@ -23,7 +24,17 @@ fi
 
 # Start the container
 log "Starting Kokoro-FastAPI server..."
-docker compose -f "$COMPOSE_FILE" up -d
+
+if docker container inspect "$CONTAINER_NAME" >/dev/null 2>&1; then
+  if [ "$(docker inspect -f '{{.State.Running}}' "$CONTAINER_NAME")" = "true" ]; then
+    log "Container $CONTAINER_NAME is already running."
+  else
+    log "Starting existing container $CONTAINER_NAME..."
+    docker start "$CONTAINER_NAME" >/dev/null
+  fi
+else
+  docker compose -f "$COMPOSE_FILE" up -d
+fi
 
 # Wait for the server to become healthy
 log "Waiting for server to be ready (this may take 30-60s on first run)..."

@@ -21,6 +21,56 @@ const LATEX_SYNTAX_PATTERN = /[_^]\{[^}]*\}|\\\[|\\\]|\$\$/;
 
 const URL_PATTERN =
   /https?:\/\/[^\s]{40,}/g;
+const YEAR_PATTERN =
+  /(?:19|20)\d{2}[a-z]?/i;
+const TRAILING_CITATION_YEAR_PATTERN =
+  /(?:19|20)\d{2}[a-z]?(?:,\s*(?:p|pp)\.?\s*\d+(?:\s*[-–]\s*\d+)?)?$/i;
+const CITATION_PREFIX_PATTERN =
+  /^(?:see(?: also)?|e\.g\.,?|i\.e\.,?|cf\.|compare|contra|but see|for example|for discussion)\s+/i;
+
+const AUTHOR_CONNECTOR_TOKENS = new Set([
+  '&',
+  'al',
+  'and',
+  'da',
+  'de',
+  'del',
+  'der',
+  'di',
+  'et',
+  'la',
+  'le',
+  'van',
+  'von',
+]);
+
+const NON_AUTHOR_TOKENS = new Set([
+  'algorithm',
+  'april',
+  'appendix',
+  'august',
+  'chapter',
+  'december',
+  'equation',
+  'february',
+  'figure',
+  'friday',
+  'january',
+  'july',
+  'june',
+  'march',
+  'monday',
+  'november',
+  'october',
+  'saturday',
+  'section',
+  'september',
+  'sunday',
+  'table',
+  'thursday',
+  'tuesday',
+  'wednesday',
+]);
 
 function stripHeadersFooters(pages) {
   if (pages.length < 3) return pages;
@@ -141,6 +191,102 @@ function cleanEquations(items) {
   return result;
 }
 
+function stripCitationPrefix(segment) {
+  return segment.replace(CITATION_PREFIX_PATTERN, '').trim();
+}
+
+function hasCitationYear(segment) {
+  return YEAR_PATTERN.test(segment);
+}
+
+function isLikelyAuthorToken(token) {
+  if (!token) {
+    return false;
+  }
+
+  if (/^[A-Z][A-Za-z'`-]*$/.test(token)) {
+    return !NON_AUTHOR_TOKENS.has(token.toLowerCase());
+  }
+
+  return false;
+}
+
+function isLikelyAuthorList(authorText) {
+  if (!authorText) {
+    return false;
+  }
+
+  const normalized = authorText
+    .replace(/\bet\s+al\.?$/i, 'et al')
+    .replace(/[.,]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalized) {
+    return false;
+  }
+
+  const tokens = normalized.split(' ');
+  let hasAuthorToken = false;
+
+  for (const token of tokens) {
+    const lowerToken = token.toLowerCase();
+    if (AUTHOR_CONNECTOR_TOKENS.has(lowerToken)) {
+      continue;
+    }
+    if (!isLikelyAuthorToken(token)) {
+      return false;
+    }
+    hasAuthorToken = true;
+  }
+
+  return hasAuthorToken;
+}
+
+function isLikelyCitationSegment(segment) {
+  const trimmed = stripCitationPrefix(
+    segment.replace(/\s+/g, ' ').trim()
+  );
+
+  if (!trimmed || !hasCitationYear(trimmed)) {
+    return false;
+  }
+
+  const yearMatch = trimmed.match(TRAILING_CITATION_YEAR_PATTERN);
+  if (!yearMatch || yearMatch.index === undefined) {
+    return false;
+  }
+
+  const authorText = trimmed
+    .slice(0, yearMatch.index)
+    .replace(/,\s*$/, '')
+    .trim();
+
+  return isLikelyAuthorList(authorText);
+}
+
+function isLikelyCitationGroup(content) {
+  const parts = content
+    .split(/\s*;\s*/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length === 0) {
+    return false;
+  }
+
+  return parts.every(isLikelyCitationSegment);
+}
+
+function stripParentheticalCitations(text) {
+  return text.replace(/\(([^()]*)\)/g, (match, content) => {
+    if (!isLikelyCitationGroup(content)) {
+      return match;
+    }
+    return '';
+  });
+}
+
 function cleanSpecialContent(text) {
   let cleaned = text;
 
@@ -160,13 +306,16 @@ function cleanSpecialContent(text) {
   // 3. Replace long URLs with "link"
   cleaned = cleaned.replace(URL_PATTERN, 'link');
 
-  // 4. Deduplicate equation markers
+  // 4. Remove parenthetical author-year citations
+  cleaned = stripParentheticalCitations(cleaned);
+
+  // 5. Deduplicate equation markers
   cleaned = cleaned.replace(
     /\[equation\]\s*\[equation\]/g,
     '[equation]'
   );
 
-  // 5. Normalize whitespace characters
+  // 6. Normalize whitespace characters
   cleaned = cleaned
     .replace(/\t/g, ' ')
     .replace(/\u00A0/g, ' ')
@@ -174,9 +323,10 @@ function cleanSpecialContent(text) {
     .replace(/\u200C/g, '')
     .replace(/\u200D/g, '')
     .replace(/\uFEFF/g, '')
-    .replace(/\s{2,}/g, ' ');
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([,.;:!?])/g, '$1');
 
-  // 6. TTS-friendly symbol replacements
+  // 7. TTS-friendly symbol replacements
   cleaned = cleaned
     .replace(/(\d)%/g, '$1 percent')
     .replace(/(\d)°\s*C\b/g, '$1 degrees Celsius')

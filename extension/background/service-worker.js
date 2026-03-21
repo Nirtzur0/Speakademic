@@ -26,6 +26,9 @@ import {
   getSettings,
   saveSettings,
 } from '../utils/storage.js';
+import {
+  buildSectionProgressSegments,
+} from '../utils/section-progress.js';
 
 let tts = new TtsClient();
 
@@ -42,6 +45,7 @@ const state = {
   error: null,
   sections: [],
   chunkSectionMap: [],
+  progressSections: [],
 };
 
 const audioBuffer = new Map();
@@ -68,6 +72,7 @@ function resetState() {
   state.error = null;
   state.sections = [];
   state.chunkSectionMap = [];
+  state.progressSections = [];
   clearAudioBuffer();
   _pendingResumeChunk = null;
   stopPositionSave();
@@ -82,9 +87,17 @@ function clearAudioBuffer() {
   }
 }
 
-function getCurrentSection() {
+function getCurrentSectionIndex() {
   const idx = state.chunkSectionMap[state.currentChunk];
   if (idx !== undefined && state.sections[idx]) {
+    return idx;
+  }
+  return -1;
+}
+
+function getCurrentSection() {
+  const idx = getCurrentSectionIndex();
+  if (idx !== -1) {
     return state.sections[idx].title;
   }
   return '';
@@ -97,6 +110,8 @@ function broadcastStatus() {
     totalChunks: state.totalChunks,
     error: state.error,
     sections: state.sections,
+    progressSections: state.progressSections,
+    currentSectionIndex: getCurrentSectionIndex(),
     currentSection: getCurrentSection(),
     speed: state.speed,
     voice: state.voice,
@@ -144,6 +159,20 @@ function startKeepAlive() {
 
 function stopKeepAlive() {
   chrome.alarms.clear(KEEPALIVE_ALARM_NAME);
+}
+
+async function showOverlayForTab(tab) {
+  if (!tab?.id) return;
+
+  try {
+    await injectContentScript(tab.id);
+    await chrome.tabs.sendMessage(tab.id, {
+      type: MSG.SHOW_OVERLAY,
+      payload: {},
+    });
+  } catch (err) {
+    console.error('[SW] Show overlay failed:', err.message);
+  }
 }
 
 // --- Position persistence ---
@@ -321,10 +350,16 @@ async function extractPdfText(url) {
 
 async function injectContentScript(tabId) {
   try {
+    await chrome.scripting.insertCSS({
+      target: { tabId },
+      files: ['content/overlay-player.css'],
+    });
     await chrome.scripting.executeScript({
       target: { tabId },
       files: [
         'utils/audio-player.js',
+        'content/icons.js',
+        'content/overlay-player.js',
         'content/content-script.js',
       ],
     });
@@ -456,6 +491,11 @@ async function handlePlay() {
     state.sections = sections || [];
     state.chunkSectionMap = buildChunkSectionMap(
       state.chunks, sectionCharOffsets || []
+    );
+    state.progressSections = buildSectionProgressSegments(
+      state.sections,
+      state.chunkSectionMap,
+      state.totalChunks
     );
 
     console.log(
@@ -905,6 +945,8 @@ chrome.runtime.onMessage.addListener(
           totalChunks: state.totalChunks,
           error: state.error,
           sections: state.sections,
+          progressSections: state.progressSections,
+          currentSectionIndex: getCurrentSectionIndex(),
           currentSection: getCurrentSection(),
           speed: state.speed,
           voice: state.voice,
@@ -926,6 +968,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === KEEPALIVE_ALARM_NAME) {
     // Keep-alive ping — no action needed
   }
+});
+
+chrome.action.onClicked.addListener((tab) => {
+  showOverlayForTab(tab);
 });
 
 // --- Global keyboard commands ---

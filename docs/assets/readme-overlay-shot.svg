@@ -1,0 +1,188 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1200"
+  height="760"
+  viewBox="0 0 1200 760"
+  fill="none"
+>
+  <defs>
+    <linearGradient id="bg" x1="100" y1="40" x2="1090" y2="700">
+      <stop offset="0" stop-color="#FFF9F3" />
+      <stop offset="1" stop-color="#F7DDD0" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#DA7756" />
+      <stop offset="1" stop-color="#F09E75" />
+    </linearGradient>
+    <filter
+      id="cardShadow"
+      x="110"
+      y="122"
+      width="980"
+      height="534"
+      filterUnits="userSpaceOnUse"
+      color-interpolation-filters="sRGB"
+    >
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#966B59"
+        flood-opacity="0.18" />
+    </filter>
+  </defs>
+
+  <rect width="1200" height="760" rx="36" fill="url(#bg)" />
+  <text
+    x="108"
+    y="92"
+    fill="#2E221E"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="34"
+    font-weight="700"
+  >
+    Floating player
+  </text>
+  <text
+    x="108"
+    y="128"
+    fill="#6C5A52"
+    font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+    font-size="18"
+  >
+    Built to feel like part of the reading experience, not a separate app.
+  </text>
+
+  <g filter="url(#cardShadow)">
+    <rect x="136" y="160" width="928" height="458" rx="32" fill="#FCF5EE" />
+    <rect x="176" y="208" width="552" height="362" rx="22" fill="#FFFDF9" />
+    <rect x="214" y="248" width="176" height="18" rx="9" fill="#EADBD0" />
+    <rect x="214" y="286" width="454" height="11" rx="5.5" fill="#D8CCC3" />
+    <rect x="214" y="312" width="424" height="11" rx="5.5" fill="#D8CCC3" />
+    <rect x="214" y="338" width="442" height="11" rx="5.5" fill="#D8CCC3" />
+    <rect x="214" y="364" width="388" height="11" rx="5.5" fill="#D8CCC3" />
+    <rect x="214" y="410" width="188" height="18" rx="9" fill="#F2D5C6" />
+    <rect x="214" y="448" width="436" height="11" rx="5.5" fill="#D8CCC3" />
+    <rect x="214" y="474" width="408" height="11" rx="5.5" fill="#D8CCC3" />
+    <rect x="214" y="500" width="362" height="11" rx="5.5" fill="#D8CCC3" />
+
+    <rect x="656" y="248" width="304" height="278" rx="24" fill="#1C1917" />
+    <rect x="656" y="248" width="304" height="5" rx="2.5"
+      fill="url(#accent)" />
+    <text
+      x="684"
+      y="287"
+      fill="#FAF9F6"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="14"
+      font-weight="700"
+      letter-spacing="0.08em"
+    >
+      SPEAKADEMIC
+    </text>
+    <text
+      x="684"
+      y="326"
+      fill="#A8A29E"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="14"
+    >
+      Listening now
+    </text>
+    <text
+      x="684"
+      y="364"
+      fill="#FAF9F6"
+      font-family="Georgia, 'Times New Roman', serif"
+      font-size="28"
+      font-weight="700"
+    >
+      Results and Discussion
+    </text>
+    <text
+      x="684"
+      y="392"
+      fill="#B8ADA7"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="15"
+    >
+      58% through  •  Section 4
+    </text>
+
+    <circle cx="809" cy="444" r="34" fill="url(#accent)" />
+    <polygon points="801,429 801,459 824,444" fill="#FFF7F2" />
+    <rect x="754" y="426" width="12" height="36" rx="6" fill="#48403B" />
+    <rect x="852" y="426" width="12" height="36" rx="6" fill="#48403B" />
+
+    <rect x="684" y="484" width="248" height="8" rx="4" fill="#3B3532" />
+    <rect x="684" y="484" width="142" height="8" rx="4" fill="url(#accent)" />
+
+    <text
+      x="684"
+      y="526"
+      fill="#D7CEC8"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="13"
+    >
+      Voice
+    </text>
+    <rect x="726" y="509" width="88" height="28" rx="12" fill="#2B2623" />
+    <text
+      x="752"
+      y="528"
+      fill="#FAF9F6"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="13"
+    >
+      Bella
+    </text>
+
+    <text
+      x="836"
+      y="526"
+      fill="#D7CEC8"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="13"
+    >
+      Speed
+    </text>
+    <rect x="882" y="509" width="50" height="28" rx="12" fill="#2B2623" />
+    <text
+      x="897"
+      y="528"
+      fill="#FAF9F6"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="13"
+    >
+      1.0x
+    </text>
+
+    <text
+      x="684"
+      y="572"
+      fill="#D7CEC8"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="13"
+    >
+      Jump to section
+    </text>
+    <rect x="684" y="586" width="248" height="36" rx="14" fill="#2B2623" />
+    <text
+      x="708"
+      y="609"
+      fill="#FAF9F6"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="14"
+    >
+      Methods
+    </text>
+  </g>
+
+  <rect x="860" y="154" width="132" height="36" rx="18" fill="#FFF8F2" />
+  <text
+    x="888"
+    y="177"
+    fill="#7D5D50"
+    font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+    font-size="14"
+    font-weight="600"
+  >
+    Warm UI
+  </text>
+</svg>

@@ -1,0 +1,239 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1280"
+  height="840"
+  viewBox="0 0 1280 840"
+  fill="none"
+>
+  <defs>
+    <linearGradient id="bg" x1="140" y1="60" x2="1120" y2="780">
+      <stop offset="0" stop-color="#FFF9F2" />
+      <stop offset="1" stop-color="#F4D7C8" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#DA7756" />
+      <stop offset="1" stop-color="#F1A47D" />
+    </linearGradient>
+    <linearGradient id="panelGlow" x1="650" y1="170" x2="1030" y2="530">
+      <stop offset="0" stop-color="#2C2724" />
+      <stop offset="1" stop-color="#151311" />
+    </linearGradient>
+    <filter
+      id="shadow"
+      x="56"
+      y="98"
+      width="1176"
+      height="652"
+      filterUnits="userSpaceOnUse"
+      color-interpolation-filters="sRGB"
+    >
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#8B5E4C"
+        flood-opacity="0.18" />
+    </filter>
+  </defs>
+
+  <rect width="1280" height="840" rx="40" fill="url(#bg)" />
+  <circle cx="1096" cy="126" r="96" fill="#F8E6DB" />
+  <circle cx="184" cy="726" r="124" fill="#F7E0D3" />
+  <circle cx="1030" cy="710" r="42" fill="#F0B492" opacity="0.65" />
+
+  <text
+    x="116"
+    y="96"
+    fill="#2C211D"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="42"
+    font-weight="700"
+  >
+    Read papers like they were made for listening.
+  </text>
+  <text
+    x="116"
+    y="138"
+    fill="#69554D"
+    font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+    font-size="20"
+  >
+    Local voice. Calm controls. A better way to live with dense PDFs.
+  </text>
+
+  <g filter="url(#shadow)">
+    <rect x="88" y="154" width="1104" height="556" rx="34" fill="#FBF4ED" />
+    <rect x="88" y="154" width="1104" height="58" rx="34" fill="#F1E3D6" />
+    <rect x="88" y="184" width="1104" height="526" rx="0" fill="#FBF4ED" />
+    <circle cx="134" cy="183" r="7" fill="#E89C87" />
+    <circle cx="158" cy="183" r="7" fill="#EBC28C" />
+    <circle cx="182" cy="183" r="7" fill="#C1D9B7" />
+
+    <rect x="132" y="246" width="484" height="404" rx="24" fill="#FFFDF9" />
+    <rect x="164" y="280" width="142" height="18" rx="9" fill="#E8D9CF" />
+    <rect x="164" y="318" width="400" height="10" rx="5" fill="#D9CDC5" />
+    <rect x="164" y="342" width="382" height="10" rx="5" fill="#D9CDC5" />
+    <rect x="164" y="366" width="414" height="10" rx="5" fill="#D9CDC5" />
+    <rect x="164" y="390" width="360" height="10" rx="5" fill="#D9CDC5" />
+    <rect x="164" y="434" width="174" height="18" rx="9" fill="#F1D4C4" />
+    <rect x="164" y="472" width="402" height="10" rx="5" fill="#D9CDC5" />
+    <rect x="164" y="496" width="376" height="10" rx="5" fill="#D9CDC5" />
+    <rect x="164" y="520" width="390" height="10" rx="5" fill="#D9CDC5" />
+    <rect x="164" y="544" width="334" height="10" rx="5" fill="#D9CDC5" />
+    <rect x="164" y="584" width="272" height="14" rx="7" fill="#EFE3D9" />
+    <rect x="450" y="584" width="114" height="14" rx="7" fill="#F2C7B0" />
+
+    <rect x="654" y="194" width="390" height="348" rx="28"
+      fill="url(#panelGlow)" />
+    <rect x="654" y="194" width="390" height="5" rx="2.5"
+      fill="url(#accent)" />
+    <text
+      x="686"
+      y="236"
+      fill="#FAF9F6"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="15"
+      font-weight="700"
+      letter-spacing="0.08em"
+    >
+      SPEAKADEMIC
+    </text>
+    <circle cx="689" cy="265" r="5" fill="#DA7756" />
+    <text
+      x="706"
+      y="271"
+      fill="#CBBFB7"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="15"
+    >
+      Now reading
+    </text>
+    <text
+      x="686"
+      y="314"
+      fill="#FAF9F6"
+      font-family="Georgia, 'Times New Roman', serif"
+      font-size="34"
+      font-weight="700"
+    >
+      Learning from Papers
+    </text>
+    <text
+      x="686"
+      y="346"
+      fill="#A8A29E"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="17"
+    >
+      Section 3.2  •  14 minutes left
+    </text>
+
+    <circle cx="816" cy="418" r="42" fill="url(#accent)" />
+    <polygon points="806,400 806,436 834,418" fill="#FFF7F2" />
+    <rect x="747" y="396" width="16" height="44" rx="8" fill="#4A423D" />
+    <rect x="869" y="396" width="16" height="44" rx="8" fill="#4A423D" />
+
+    <rect x="686" y="478" width="326" height="10" rx="5" fill="#3A3431" />
+    <rect x="686" y="478" width="178" height="10" rx="5" fill="url(#accent)" />
+    <text
+      x="686"
+      y="518"
+      fill="#D8CFC9"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="14"
+    >
+      Voice
+    </text>
+    <text
+      x="846"
+      y="518"
+      fill="#D8CFC9"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="14"
+    >
+      Speed
+    </text>
+    <rect x="686" y="530" width="132" height="38" rx="14" fill="#2A2522" />
+    <rect x="836" y="530" width="100" height="38" rx="14" fill="#2A2522" />
+    <text
+      x="708"
+      y="554"
+      fill="#FAF9F6"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="15"
+    >
+      Bella
+    </text>
+    <text
+      x="870"
+      y="554"
+      fill="#FAF9F6"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="15"
+    >
+      1.25x
+    </text>
+
+    <rect x="846" y="582" width="262" height="86" rx="24" fill="#FFF6F0" />
+    <text
+      x="876"
+      y="619"
+      fill="#3A2D28"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="15"
+      font-weight="700"
+    >
+      Feels natural in long sessions
+    </text>
+    <text
+      x="876"
+      y="646"
+      fill="#6C5950"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="14"
+    >
+      Skip, pause, and return later
+    </text>
+    <text
+      x="876"
+      y="668"
+      fill="#6C5950"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="14"
+    >
+      without losing your place.
+    </text>
+  </g>
+
+  <rect x="116" y="676" width="140" height="38" rx="19" fill="#FFF8F3" />
+  <text
+    x="148"
+    y="700"
+    fill="#7A5C4E"
+    font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+    font-size="15"
+    font-weight="600"
+  >
+    Local voice
+  </text>
+
+  <rect x="274" y="676" width="168" height="38" rx="19" fill="#FFF8F3" />
+  <text
+    x="302"
+    y="700"
+    fill="#7A5C4E"
+    font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+    font-size="15"
+    font-weight="600"
+  >
+    Remembers progress
+  </text>
+
+  <rect x="460" y="676" width="154" height="38" rx="19" fill="#FFF8F3" />
+  <text
+    x="491"
+    y="700"
+    fill="#7A5C4E"
+    font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+    font-size="15"
+    font-weight="600"
+  >
+    Built for papers
+  </text>
+</svg>

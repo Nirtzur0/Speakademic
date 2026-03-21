@@ -9,6 +9,9 @@ import {
   buildSectionMap,
   findReferencesStart,
 } from './section-detector.js';
+import {
+  annotateSectionHierarchy,
+} from '../utils/section-outline.js';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   chrome.runtime.getURL('lib/pdf.worker.mjs');
@@ -108,7 +111,9 @@ async function extractText(pdfUrl) {
 
   const cleanedPages = cleanAllPages(rawPages);
 
-  const sections = detectSections(cleanedPages);
+  const sections = annotateSectionHierarchy(
+    detectSections(cleanedPages)
+  );
   const sectionMap = buildSectionMap(sections);
   const referencesStart = findReferencesStart(sections);
 

@@ -1,112 +1,151 @@
-# Kokoro PDF Reader
+<div align="center">
+  <img
+    src="extension/icons/icon128.png"
+    alt="Speakademic icon"
+    width="88"
+  />
 
-A Chrome extension that reads academic PDFs aloud using a locally self-hosted Kokoro TTS model. Fully local, zero cloud dependencies, privacy-first.
+  <h1>Speakademic</h1>
 
-## Features
+  <p>
+    <strong>Read academic papers like they were made for listening.</strong>
+  </p>
 
-- **PDF text extraction** with multi-column layout detection (IEEE, ACM, Nature formats)
-- **Smart text processing**: strips headers/footers, handles equations, detects sections
-- **Floating player overlay** on PDF pages with full playback controls
-- **Keyboard shortcuts**: Space (play/pause), arrows (skip/speed), Escape (stop)
-- **Voice selection** with multiple voices grouped by language/gender
-- **Speed control** from 0.75x to 2.0x
-- **Section navigation** — jump to any detected section
-- **Position persistence** — resume from where you left off
-- **Adaptive chunking** — adjusts to server performance automatically
-- **Pre-buffering** — 3 chunks ahead for seamless playback
+  <p>
+    Speakademic is a local-first Chrome extension for people who live in PDFs.
+    Open a paper, press play, and hear it in a calm, natural voice with a
+    floating reader that remembers your place.
+  </p>
 
-## Requirements
+  <p>
+    No accounts. No cloud upload. No sending your papers anywhere.
+  </p>
+</div>
 
-- macOS with Apple Silicon (M1/M2/M3/M4) or Intel
-- Docker Desktop (recommended) or Python 3.10+
+<p align="center">
+  <img
+    src="docs/assets/readme-hero.svg"
+    alt="Speakademic hero product shot"
+    width="100%"
+  />
+</p>
+
+<table>
+  <tr>
+    <td width="33%" align="center">
+      <strong>Local by default</strong><br />
+      Your PDFs stay on your machine, and audio is generated locally.
+    </td>
+    <td width="33%" align="center">
+      <strong>Built for real papers</strong><br />
+      It handles the messy reality of academic PDFs better than a generic
+      reader.
+    </td>
+    <td width="33%" align="center">
+      <strong>Made to feel calm</strong><br />
+      The player is simple, warm, and easy to live with during long reading
+      sessions.
+    </td>
+  </tr>
+</table>
+
+> Speakademic is for the part of research that happens away from the desk:
+> revisiting a methods section on a walk, listening through a dense paper on a
+> late train, or getting one more pass through a draft without staring at the
+> screen.
+
+## Why People Like It
+
+- It feels like a reading tool, not a control panel.
+- It works well with academic PDFs, including multi-column papers.
+- It lets you change voice, speed, and section without losing the thread.
+- It remembers where you stopped, so you can come back later.
+- It stays private, because the whole thing runs locally.
+
+## Product Shots
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img
+        src="docs/assets/readme-overlay-shot.svg"
+        alt="Speakademic floating player product shot"
+        width="100%"
+      />
+      <br />
+      <strong>A player that stays out of the way.</strong><br />
+      Play, pause, skip, switch voices, and jump between sections without
+      breaking focus.
+    </td>
+    <td width="50%" valign="top">
+      <img
+        src="docs/assets/readme-settings-shot.svg"
+        alt="Speakademic settings product shot"
+        width="100%"
+      />
+      <br />
+      <strong>Simple settings, not a setup maze.</strong><br />
+      Point Speakademic at your local server once, pick the reading defaults
+      you like, and let it remember the rest.
+    </td>
+  </tr>
+</table>
+
+## What It Does
+
+- Reads academic PDFs aloud with a local Kokoro voice server.
+- Shows a floating player directly on the page.
+- Supports voice selection and comfortable playback speeds.
+- Detects sections so you can jump around more naturally.
+- Saves your position, so long papers feel less punishing.
+
+## Run It
+
+You only need a few things:
+
+- a Mac
 - Google Chrome
+- Docker Desktop, if you want the easiest setup
 
-## Quick Start
+### 1. Start the local voice server
 
-### 1. Start the TTS server
+From this repo:
 
 ```bash
 cd server
 ./start-server.sh
 ```
 
-This pulls the Kokoro-FastAPI Docker image and starts it on port 8880. First run downloads the model (~200MB).
+The first run downloads the voice model, so give it a minute.
 
-### 2. Load the extension
+### 2. Load the extension into Chrome
 
-1. Open `chrome://extensions` in Chrome
-2. Enable "Developer mode" (top right)
-3. Click "Load unpacked" and select the `extension/` folder
-4. For local PDFs: click the extension details and enable "Allow access to file URLs"
+1. Open `chrome://extensions`
+2. Turn on **Developer mode**
+3. Click **Load unpacked**
+4. Choose the `extension/` folder
+5. If you read local PDFs, enable **Allow access to file URLs**
 
-### 3. Read a PDF
+### 3. Open a paper and press play
 
-1. Open any PDF in Chrome
-2. Click the Kokoro extension icon or press `Alt+Shift+P`
-3. Click Play
+Open any PDF in Chrome, click the Speakademic icon, and the floating player
+appears on the page.
 
-## Keyboard Shortcuts
+That is the whole flow.
 
-| Key | Action |
-|-----|--------|
-| Space | Play / Pause |
-| Right Arrow | Skip forward one chunk |
-| Left Arrow | Skip back one chunk |
-| Up Arrow | Increase speed |
-| Down Arrow | Decrease speed |
-| Escape | Stop playback |
-| Alt+Shift+P | Toggle play/pause (global) |
-| Alt+Shift+S | Stop (global) |
+## A Few Honest Notes
 
-## Architecture
+- Speakademic works best with text-based PDFs. Scanned PDFs may still need OCR.
+- The first launch is slower than the rest because the local model has to warm
+  up.
+- If you want the full step-by-step version, use
+  [Setup](docs/SETUP.md) and
+  [Troubleshooting](docs/TROUBLESHOOTING.md).
 
-```
-Chrome Browser
-  Extension Popup ←→ Service Worker ←→ Content Script
-                         ↓                    ↓
-                    Kokoro API          Audio Playback
-                  (localhost:8880)      (Web Audio API)
-```
+## For Developers
 
-- **Service Worker**: state machine, TTS API calls, text extraction (pdf.js), chunk queue
-- **Content Script**: audio playback via `<Audio>`, keyboard shortcuts
-- **Overlay Player**: floating UI injected on PDF pages
-- **Popup**: quick controls and status
+If you want the repo layout at a glance:
 
-## Project Structure
-
-```
-server/                     Local TTS server setup
-  docker-compose.yml        One-command Kokoro-FastAPI launch
-  start-server.sh           Start with health check polling
-  stop-server.sh            Stop the server
-  install-native.sh         Non-Docker alternative
-
-extension/                  Chrome extension (Manifest V3)
-  manifest.json
-  background/               Service worker (ES module)
-  content/                  Content scripts (IIFE)
-    overlay-player.js/css   Floating player UI
-    pdf-extractor.js        PDF text extraction pipeline
-    column-detector.js      Multi-column layout detection
-    text-cleaner.js         Header/footer/equation handling
-    section-detector.js     Section heading detection
-    sentence-splitter.js    Smart sentence splitting
-  popup/                    Extension popup
-  options/                  Settings page
-  utils/                    Shared utilities
-  lib/                      Vendored pdf.js
-```
-
-## Settings
-
-Right-click the extension icon → Options, or go to `chrome://extensions` → Kokoro PDF Reader → Details → Extension options.
-
-- **Server URL**: default `http://localhost:8880`
-- **Default voice and speed**
-- **Auto-resume**: resume from last position when reopening a PDF
-- **Skip References**: stop reading before the References section
-
-## License
-
-MIT
+- [`extension/`](extension/) holds the Chrome extension
+- [`server/`](server/) starts the local Kokoro server
+- [`docs/`](docs/) has the fuller setup and troubleshooting guides

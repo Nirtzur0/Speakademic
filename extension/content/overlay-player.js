@@ -21,6 +21,7 @@
     RESUME_ACCEPT: 'RESUME_ACCEPT',
     RESUME_DECLINE: 'RESUME_DECLINE',
     HEARTBEAT: 'HEARTBEAT',
+    SHOW_OVERLAY: 'SHOW_OVERLAY',
     STATUS_UPDATE: 'STATUS_UPDATE',
     SERVER_STATUS: 'SERVER_STATUS',
   };
@@ -33,36 +34,55 @@
     bf: 'British Female',
     bm: 'British Male',
   };
+  const TRANSCRIPT_SCROLL_EDGE_PX = 30;
+  const TRANSCRIPT_SCROLL_LEAD_RATIO = 0.34;
+  const OUTLINE_LABEL_OPEN = 'Hide outline';
+  const OUTLINE_LABEL_CLOSED = 'Outline';
+  const MAX_OUTLINE_LEVEL = 3;
 
   let _isMinimized = false;
   let _isDragging = false;
+  let _dragMoved = false;
+  let _isOutlineExpanded = false;
+  let _hasOutlineContent = false;
+  let _isResumePromptVisible = false;
   let _dragOffset = { x: 0, y: 0 };
   let _status = 'idle';
   let _currentChunk = 0;
   let _totalChunks = 0;
+  let _currentSectionIndex = -1;
   let _speed = 1.0;
   let _voice = 'af_bella';
+  let _isVisible = false;
 
   let _root;
+  let _shell;
   let _panel;
+  let _outlinePanel;
+  let _outlineToggleBtn;
+  let _outlineList;
   let _minimizedBtn;
+  let _minimizedIcon;
   let _playPauseBtn;
   let _stopBtn;
   let _skipBackBtn;
   let _skipFwdBtn;
   let _progressFill;
-  let _progressText;
+  let _progressSections;
+  let _progressTooltip;
   let _textDisplay;
+  let _textContent;
   let _speedSelect;
   let _voiceSelect;
-  let _sectionSelect;
-  let _sectionCurrent;
-  let _soundBars;
+  let _outlineButtons = new Map();
 
   // Sentence highlighting state
   let _sentenceSpans = [];
   let _sentenceTimings = [];
+  let _activeSentenceIndex = -1;
   let _highlightRAF = null;
+  let _playPauseAction = null;
+  let _stopAction = null;
 
   function send(type, payload = {}) {
     chrome.runtime.sendMessage({ type, payload });
@@ -83,22 +103,21 @@
     _root = el('div', 'sp sp--hidden', {
       'data-sp-role': 'player',
     });
+    _shell = el('div', 'sp__shell');
 
     _panel = el('div', 'sp__panel');
     _minimizedBtn = el('button', 'sp__minimized sp__minimized--hidden');
-    _minimizedBtn.title = 'Expand player';
-    _minimizedBtn.addEventListener('click', handleExpand);
+    _minimizedBtn.title = 'Play';
+    _minimizedBtn.addEventListener('click', handleMinimizedClick);
+    _minimizedBtn.addEventListener('dblclick', handleExpand);
 
-    // Minimized button content: icon + sound bars + label
-    const minIcon = el('span', 'sp__minimized-icon');
-    minIcon.innerHTML = ICONS.play || '&#9654;';
-    _soundBars = el('span', 'sp__sound-bars');
-    for (let i = 0; i < 3; i++) {
-      _soundBars.appendChild(el('span', 'sp__sound-bar'));
-    }
+    // Minimized button content: icon + label
+    _minimizedIcon = el('span', 'sp__minimized-icon');
+    _minimizedIcon.innerHTML = ICONS.play || '&#9654;';
     const minLabel = el('span');
     minLabel.textContent = 'Speakademic';
-    _minimizedBtn.append(minIcon, _soundBars, minLabel);
+    _minimizedBtn.append(_minimizedIcon, minLabel);
+    initDrag(_minimizedBtn, true);
 
     // Accent bar at top of panel
     const accentBar = el('div', 'sp__accent-bar');
@@ -109,12 +128,19 @@
     const dot = el('span', 'sp__title-dot');
     title.appendChild(dot);
     title.appendChild(document.createTextNode('Speakademic'));
+    const headerActions = el('div', 'sp__header-actions');
+    _outlineToggleBtn = el('button', 'sp__header-btn');
+    _outlineToggleBtn.textContent = OUTLINE_LABEL_CLOSED;
+    _outlineToggleBtn.title = 'Toggle outline';
+    _outlineToggleBtn.setAttribute('aria-expanded', 'false');
+    _outlineToggleBtn.addEventListener('click', toggleOutline);
     const minBtn = el('button', 'sp__minimize-btn');
     minBtn.innerHTML = ICONS.minimize || '&#8722;';
     minBtn.title = 'Minimize';
     minBtn.addEventListener('click', handleMinimize);
-    header.append(title, minBtn);
-    initDrag(header);
+    headerActions.append(_outlineToggleBtn, minBtn);
+    header.append(title, headerActions);
+    initDrag(header, false);
 
     // Controls
     const controls = el('div', 'sp__controls');
@@ -123,9 +149,9 @@
       send(MSG.SKIP_BACK);
     });
     _playPauseBtn = createBtn(ICONS.play || '&#9654;', 'Play', 'sp__btn--play');
-    _playPauseBtn.addEventListener('click', handlePlayPause);
+    _playPauseBtn.addEventListener('click', handlePlayPauseClick);
     _stopBtn = createBtn(ICONS.stop || '&#9632;', 'Stop');
-    _stopBtn.addEventListener('click', () => send(MSG.STOP));
+    _stopBtn.addEventListener('click', handleStopClick);
     _skipFwdBtn = createBtn(ICONS.skipForward || '&#9654;&#9654;', 'Skip forward');
     _skipFwdBtn.addEventListener('click', () => {
       send(MSG.SKIP_FORWARD);
@@ -138,14 +164,18 @@
     const progress = el('div', 'sp__progress');
     const bar = el('div', 'sp__progress-bar');
     _progressFill = el('div', 'sp__progress-fill');
-    bar.append(_progressFill);
-    _progressText = el('div', 'sp__progress-text');
-    _progressText.textContent = '0 / 0';
-    progress.append(bar, _progressText);
+    _progressSections = el('div', 'sp__progress-sections');
+    bar.append(_progressFill, _progressSections);
+    _progressTooltip = el(
+      'div',
+      'sp__progress-tooltip sp__progress-tooltip--hidden'
+    );
+    progress.append(bar, _progressTooltip);
 
     // Text display
     _textDisplay = el('div', 'sp__text-display');
-    _textDisplay.textContent = '';
+    _textContent = el('div', 'sp__text-content');
+    _textDisplay.append(_textContent);
 
     // Settings
     const settings = el('div', 'sp__settings');
@@ -184,30 +214,26 @@
 
     settings.append(speedSetting, voiceSetting);
 
-    // Sections
-    const sectionsWrap = el('div', 'sp__sections');
-    const secLabel = el('div', 'sp__section-label');
-    secLabel.textContent = 'Section';
-    _sectionCurrent = el('div', 'sp__section-current');
-    _sectionCurrent.textContent = '\u2014';
-    _sectionSelect = el('select', 'sp__section-select');
-    const secDefault = el('option');
-    secDefault.value = '';
-    secDefault.textContent = 'Jump to section\u2026';
-    _sectionSelect.append(secDefault);
-    _sectionSelect.addEventListener('change', () => {
-      const idx = parseInt(_sectionSelect.value, 10);
-      if (!isNaN(idx)) {
-        send(MSG.JUMP_TO_SECTION, { sectionIndex: idx });
-      }
-      _sectionSelect.value = '';
+    _outlinePanel = el('aside', 'sp__outline', {
+      id: 'sp-outline-panel',
     });
-    sectionsWrap.append(secLabel, _sectionCurrent, _sectionSelect);
+    const outlineHeader = el('div', 'sp__outline-header');
+    const outlineTitle = el('div', 'sp__outline-title');
+    outlineTitle.textContent = 'Outline';
+    const outlineMeta = el('div', 'sp__outline-meta');
+    outlineMeta.textContent = 'Jump between sections';
+    outlineHeader.append(outlineTitle, outlineMeta);
+    _outlineList = el('div', 'sp__outline-list');
+    _outlinePanel.append(outlineHeader, _outlineList);
 
     _panel.append(accentBar, header, controls, progress,
-      _textDisplay, settings, sectionsWrap);
-    _root.append(_panel, _minimizedBtn);
+      _textDisplay, settings);
+    _shell.append(_panel, _outlinePanel);
+    _root.append(_shell, _minimizedBtn);
     document.body.appendChild(_root);
+    useDefaultControlActions();
+    syncOutlineState();
+    syncOutlineHeight();
   }
 
   function createBtn(html, title, extraClass) {
@@ -224,30 +250,148 @@
     send(type);
   }
 
+  function handleStop() {
+    send(MSG.STOP);
+  }
+
+  function handlePlayPauseClick() {
+    if (_playPauseAction) {
+      _playPauseAction();
+    }
+  }
+
+  function handleStopClick() {
+    if (_stopAction) {
+      _stopAction();
+    }
+  }
+
+  function useDefaultControlActions() {
+    _isResumePromptVisible = false;
+    _playPauseAction = handlePlayPause;
+    _stopAction = handleStop;
+  }
+
+  function handleResumeAccept() {
+    useDefaultControlActions();
+    send(MSG.RESUME_ACCEPT);
+  }
+
+  function handleResumeDecline() {
+    useDefaultControlActions();
+    send(MSG.RESUME_DECLINE);
+  }
+
+  function handleMinimizedClick(event) {
+    if (_dragMoved) {
+      event.preventDefault();
+      return;
+    }
+    handlePlayPauseClick();
+  }
+
   function handleMinimize() {
     _isMinimized = true;
+    _outlinePanel.classList.add('sp__outline--exiting');
     _panel.classList.add('sp__panel--exiting');
     setTimeout(() => {
+      _shell.classList.add('sp__shell--hidden');
       _panel.classList.add('sp__panel--hidden');
       _panel.classList.remove('sp__panel--exiting');
+      _outlinePanel.classList.remove('sp__outline--exiting');
       _minimizedBtn.classList.remove('sp__minimized--hidden');
     }, 200);
   }
 
   function handleExpand() {
     _isMinimized = false;
+    _isVisible = true;
     _minimizedBtn.classList.add('sp__minimized--hidden');
+    _shell.classList.remove('sp__shell--hidden');
     _panel.classList.remove('sp__panel--hidden');
     // Re-trigger entrance animation
     _panel.style.animation = 'none';
     _panel.offsetHeight; // force reflow
     _panel.style.animation = '';
+    if (!_outlinePanel.classList.contains('sp__outline--collapsed')) {
+      _outlinePanel.style.animation = 'none';
+      _outlinePanel.offsetHeight; // force reflow
+      _outlinePanel.style.animation = '';
+    }
+    requestAnimationFrame(syncOutlineHeight);
   }
 
-  function initDrag(header) {
-    header.addEventListener('mousedown', (e) => {
-      if (e.target.tagName === 'BUTTON') return;
+  function showOverlay() {
+    _isVisible = true;
+    _root.classList.remove('sp--hidden');
+    if (_isMinimized
+      || _shell.classList.contains('sp__shell--hidden')) {
+      handleExpand();
+    }
+    if (_status === 'idle' && !_textContent.textContent) {
+      setTextDisplayMessage(
+        'Ready to read. Press play to start this page.'
+      );
+    }
+  }
+
+  function toggleOutline() {
+    if (!_hasOutlineContent) {
+      return;
+    }
+    _isOutlineExpanded = !_isOutlineExpanded;
+    syncOutlineState();
+  }
+
+  function syncOutlineState() {
+    const isExpanded = _hasOutlineContent && _isOutlineExpanded;
+    _outlinePanel.classList.toggle(
+      'sp__outline--collapsed',
+      !isExpanded
+    );
+    _outlineToggleBtn.classList.toggle(
+      'sp__header-btn--hidden',
+      !_hasOutlineContent
+    );
+    _outlineToggleBtn.textContent = isExpanded
+      ? OUTLINE_LABEL_OPEN
+      : OUTLINE_LABEL_CLOSED;
+    _outlineToggleBtn.setAttribute(
+      'aria-expanded',
+      String(isExpanded)
+    );
+    _outlineToggleBtn.setAttribute(
+      'aria-controls',
+      'sp-outline-panel'
+    );
+    if (isExpanded) {
+      requestAnimationFrame(syncOutlineHeight);
+    }
+  }
+
+  function syncOutlineHeight() {
+    if (!_outlinePanel || !_panel) {
+      return;
+    }
+
+    const panelHeight = _panel.offsetHeight;
+    if (panelHeight <= 0) {
+      return;
+    }
+
+    const maxHeight = Math.max(260, window.innerHeight - 40);
+    const targetHeight = Math.min(
+      maxHeight,
+      panelHeight + 28
+    );
+    _outlinePanel.style.height = targetHeight + 'px';
+  }
+
+  function initDrag(handle, allowButtonDrag) {
+    handle.addEventListener('mousedown', (e) => {
+      if (!allowButtonDrag && e.target.tagName === 'BUTTON') return;
       _isDragging = true;
+      _dragMoved = false;
       const rect = _root.getBoundingClientRect();
       _dragOffset.x = e.clientX - rect.left;
       _dragOffset.y = e.clientY - rect.top;
@@ -260,6 +404,7 @@
 
     document.addEventListener('mousemove', (e) => {
       if (!_isDragging) return;
+      _dragMoved = true;
       _root.style.left =
         (e.clientX - _dragOffset.x) + 'px';
       _root.style.top =
@@ -267,6 +412,11 @@
     });
 
     document.addEventListener('mouseup', () => {
+      if (_isDragging) {
+        setTimeout(() => {
+          _dragMoved = false;
+        }, 0);
+      }
       _isDragging = false;
     });
   }
@@ -281,9 +431,10 @@
   }
 
   function renderSentences(sentences) {
-    _textDisplay.innerHTML = '';
+    _textContent.innerHTML = '';
     _sentenceSpans = [];
     _sentenceTimings = [];
+    _activeSentenceIndex = -1;
 
     if (sentences.length === 0) return;
 
@@ -293,13 +444,119 @@
     for (let i = 0; i < sentences.length; i++) {
       const span = el('span', 'sp__sentence');
       span.textContent = sentences[i] + ' ';
-      _textDisplay.appendChild(span);
+      _textContent.appendChild(span);
       _sentenceSpans.push(span);
 
       const start = cumulative / totalChars;
       cumulative += sentences[i].length;
       const end = cumulative / totalChars;
       _sentenceTimings.push({ start, end });
+    }
+  }
+
+  function setTextDisplayMessage(message) {
+    _textContent.textContent = message || '';
+    _sentenceSpans = [];
+    _sentenceTimings = [];
+    _activeSentenceIndex = -1;
+  }
+
+  function shouldScrollSentenceIntoView(span) {
+    const containerRect = _textDisplay.getBoundingClientRect();
+    const spanRect = span.getBoundingClientRect();
+    return spanRect.top < containerRect.top + TRANSCRIPT_SCROLL_EDGE_PX
+      || spanRect.bottom > containerRect.bottom
+        - TRANSCRIPT_SCROLL_EDGE_PX;
+  }
+
+  function scrollSentenceIntoView(span) {
+    if (!shouldScrollSentenceIntoView(span)) {
+      return;
+    }
+
+    const maxScrollTop = Math.max(
+      0,
+      _textDisplay.scrollHeight - _textDisplay.clientHeight
+    );
+    const targetTop = span.offsetTop
+      - (_textDisplay.clientHeight * TRANSCRIPT_SCROLL_LEAD_RATIO);
+
+    _textDisplay.scrollTo({
+      top: Math.min(maxScrollTop, Math.max(0, targetTop)),
+      behavior: 'smooth',
+    });
+  }
+
+  function hideProgressTooltip() {
+    _progressTooltip.classList.add(
+      'sp__progress-tooltip--hidden'
+    );
+  }
+
+  function showProgressTooltip(segment) {
+    if (!segment?.title) {
+      hideProgressTooltip();
+      return;
+    }
+
+    const centerRatio = segment.startRatio
+      + (segment.widthRatio / 2);
+    const clampedCenter = Math.min(
+      Math.max(centerRatio, 0.08),
+      0.92
+    );
+
+    _progressTooltip.textContent = segment.title;
+    _progressTooltip.style.left = (clampedCenter * 100) + '%';
+    _progressTooltip.classList.remove(
+      'sp__progress-tooltip--hidden'
+    );
+  }
+
+  function renderProgressSections(
+    progressSections,
+    currentSectionIndex
+  ) {
+    _progressSections.innerHTML = '';
+    hideProgressTooltip();
+
+    if (!Array.isArray(progressSections)
+      || progressSections.length === 0) {
+      return;
+    }
+
+    for (let i = 0; i < progressSections.length; i++) {
+      const segment = progressSections[i];
+      const className = [
+        'sp__progress-section',
+        i % 2 === 1 ? 'sp__progress-section--alt' : '',
+        segment.sectionIndex === currentSectionIndex
+          ? 'sp__progress-section--current'
+          : '',
+      ].filter(Boolean).join(' ');
+      const sectionEl = el('button', className, {
+        type: 'button',
+        title: segment.title,
+        'aria-label': 'Jump to ' + segment.title,
+      });
+
+      sectionEl.style.left = (segment.startRatio * 100) + '%';
+      sectionEl.style.width = (segment.widthRatio * 100) + '%';
+      sectionEl.addEventListener('click', () => {
+        hideProgressTooltip();
+        send(MSG.JUMP_TO_SECTION, {
+          sectionIndex: segment.sectionIndex,
+        });
+      });
+      sectionEl.addEventListener('mouseenter', () => {
+        showProgressTooltip(segment);
+      });
+      sectionEl.addEventListener('focus', () => {
+        showProgressTooltip(segment);
+      });
+      sectionEl.addEventListener('mouseleave', hideProgressTooltip);
+      sectionEl.addEventListener('blur', hideProgressTooltip);
+      _progressSections.append(sectionEl);
     }
   }
 
@@ -315,6 +572,7 @@
 
       if (duration > 0 && _sentenceSpans.length > 0) {
         const progress = current / duration;
+        let activeIndex = -1;
 
         for (let i = 0; i < _sentenceSpans.length; i++) {
           const span = _sentenceSpans[i];
@@ -323,15 +581,22 @@
           span.classList.remove('sp__sentence--active', 'sp__sentence--past');
 
           if (progress >= timing.start && progress < timing.end) {
+            activeIndex = i;
             span.classList.add('sp__sentence--active');
-            // Auto-scroll active sentence into view
-            if (span.offsetTop > _textDisplay.scrollTop + _textDisplay.clientHeight - 20
-              || span.offsetTop < _textDisplay.scrollTop) {
-              span.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
           } else if (progress >= timing.end) {
             span.classList.add('sp__sentence--past');
           }
+        }
+
+        if (activeIndex !== -1) {
+          const activeSpan = _sentenceSpans[activeIndex];
+          if (activeIndex !== _activeSentenceIndex
+            || shouldScrollSentenceIntoView(activeSpan)) {
+            scrollSentenceIntoView(activeSpan);
+          }
+          _activeSentenceIndex = activeIndex;
+        } else {
+          _activeSentenceIndex = -1;
         }
       }
 
@@ -348,6 +613,7 @@
       cancelAnimationFrame(_highlightRAF);
       _highlightRAF = null;
     }
+    _activeSentenceIndex = -1;
   }
 
   // ---- State update ----
@@ -356,12 +622,17 @@
     _status = state.status;
     _currentChunk = state.currentChunk || 0;
     _totalChunks = state.totalChunks || 0;
+    _currentSectionIndex = Number.isInteger(
+      state.currentSectionIndex
+    )
+      ? state.currentSectionIndex
+      : -1;
 
     const isIdle = _status === 'idle';
     const isPlaying = _status === 'playing';
     const isActive = !isIdle && _status !== 'error';
 
-    if (isIdle) {
+    if (isIdle && !_isVisible) {
       _root.classList.add('sp--hidden');
       stopSentenceTracking();
       return;
@@ -369,33 +640,47 @@
     _root.classList.remove('sp--hidden');
 
     // Play/pause icon
-    _playPauseBtn.innerHTML = isPlaying
+    if (!_isResumePromptVisible) {
+      _playPauseBtn.innerHTML = isPlaying
+        ? (ICONS.pause || '&#9646;&#9646;')
+        : (ICONS.play || '&#9654;');
+      _playPauseBtn.title = isPlaying ? 'Pause' : 'Play';
+      _stopBtn.title = 'Stop';
+    }
+    _minimizedIcon.innerHTML = isPlaying
       ? (ICONS.pause || '&#9646;&#9646;')
       : (ICONS.play || '&#9654;');
-    _playPauseBtn.title = isPlaying ? 'Pause' : 'Play';
+    _minimizedBtn.title = isPlaying
+      ? 'Pause (double-click to expand)'
+      : 'Play (double-click to expand)';
 
     _skipBackBtn.disabled = !isActive;
     _skipFwdBtn.disabled = !isActive;
-    _stopBtn.disabled = !isActive;
-    _playPauseBtn.disabled =
-      _status === 'extracting' || _status === 'loading';
+    if (_isResumePromptVisible) {
+      _playPauseBtn.disabled = false;
+      _stopBtn.disabled = false;
+      _skipBackBtn.disabled = true;
+      _skipFwdBtn.disabled = true;
+    } else {
+      _stopBtn.disabled = !isActive;
+      _playPauseBtn.disabled =
+        _status === 'extracting' || _status === 'loading';
+    }
 
     // Progress
     if (_totalChunks > 0) {
       const pct = ((_currentChunk + 1) / _totalChunks) * 100;
       _progressFill.style.width = pct + '%';
-      _progressText.textContent =
-        (_currentChunk + 1) + ' / ' + _totalChunks;
     } else {
       _progressFill.style.width = '0%';
-      _progressText.textContent =
-        _status === 'extracting'
-          ? 'Extracting text\u2026'
-          : 'Loading\u2026';
     }
 
-    if (state.currentSection) {
-      _sectionCurrent.textContent = state.currentSection;
+    if (state.error?.message) {
+      setTextDisplayMessage(state.error.message);
+    } else if (_status === 'idle' && _isVisible) {
+      setTextDisplayMessage(
+        'Ready to read. Press play to start this page.'
+      );
     }
 
     if (state.speed && state.speed !== _speed) {
@@ -408,36 +693,85 @@
       _voiceSelect.value = _voice;
     }
 
-    if (state.sections && state.sections.length > 0) {
-      populateSections(state.sections);
-    }
+    renderOutline(
+      state.sections || [],
+      _currentSectionIndex
+    );
+    renderProgressSections(
+      state.progressSections,
+      _currentSectionIndex
+    );
+    requestAnimationFrame(syncOutlineHeight);
 
-    // Sound bars animation on minimized button
     if (isPlaying) {
-      _minimizedBtn.classList.add('sp__minimized--playing');
       startSentenceTracking();
     } else {
-      _minimizedBtn.classList.remove('sp__minimized--playing');
       stopSentenceTracking();
     }
   }
 
-  function populateSections(sections) {
-    const current = _sectionSelect.value;
-    _sectionSelect.innerHTML = '';
-    const defaultOpt = el('option');
-    defaultOpt.value = '';
-    defaultOpt.textContent = 'Jump to section\u2026';
-    _sectionSelect.append(defaultOpt);
+  function renderOutline(sections, currentSectionIndex) {
+    _outlineList.innerHTML = '';
+    _outlineButtons = new Map();
+
+    const outlineSections = Array.isArray(sections)
+      ? sections.filter((section) => !section.isReferences)
+      : [];
+    _hasOutlineContent = outlineSections.length > 0;
+    syncOutlineState();
+
+    if (!_hasOutlineContent) {
+      return;
+    }
 
     for (let i = 0; i < sections.length; i++) {
-      if (sections[i].isReferences) continue;
-      const opt = el('option');
-      opt.value = i;
-      opt.textContent = sections[i].title;
-      _sectionSelect.append(opt);
+      const section = sections[i];
+      if (!section || section.isReferences) {
+        continue;
+      }
+
+      const outlineItem = el('div', 'sp__outline-item');
+      const outlineButton = el('button', 'sp__outline-button', {
+        type: 'button',
+        title: section.title,
+      });
+      const outlineLevel = Math.min(
+        Math.max(section.outlineLevel || 0, 0),
+        MAX_OUTLINE_LEVEL
+      );
+
+      outlineButton.textContent = section.title;
+      outlineButton.style.setProperty(
+        '--sp-outline-level',
+        String(outlineLevel)
+      );
+      if (i === currentSectionIndex) {
+        outlineButton.classList.add(
+          'sp__outline-button--active'
+        );
+      }
+      outlineButton.addEventListener('click', () => {
+        send(MSG.JUMP_TO_SECTION, { sectionIndex: i });
+      });
+      outlineItem.append(outlineButton);
+      _outlineList.append(outlineItem);
+      _outlineButtons.set(i, outlineButton);
     }
-    _sectionSelect.value = current;
+
+    if (_isOutlineExpanded) {
+      scrollOutlineSelectionIntoView(currentSectionIndex);
+    }
+  }
+
+  function scrollOutlineSelectionIntoView(currentSectionIndex) {
+    const activeButton = _outlineButtons.get(currentSectionIndex);
+    if (!activeButton) {
+      return;
+    }
+
+    activeButton.scrollIntoView({
+      block: 'nearest',
+    });
   }
 
   function populateVoices(voices) {
@@ -468,29 +802,26 @@
   }
 
   function showResumePrompt(payload) {
-    _root.classList.remove('sp--hidden');
+    showOverlay();
     const pct = Math.round(
       (payload.chunkIndex / payload.totalChunks) * 100
     );
-    _textDisplay.textContent =
-      'Resume from \u201c' + payload.section + '\u201d (' + pct + '% through)?';
+    setTextDisplayMessage(
+      'Resume from \u201c' + payload.section
+        + '\u201d (' + pct + '% through)?'
+        + ' Play resumes. Stop starts over.'
+    );
 
+    _isResumePromptVisible = true;
+    _playPauseAction = handleResumeAccept;
+    _stopAction = handleResumeDecline;
     _playPauseBtn.innerHTML = ICONS.play || '&#9654;';
     _playPauseBtn.title = 'Resume';
     _playPauseBtn.disabled = false;
-    _playPauseBtn.onclick = () => {
-      send(MSG.RESUME_ACCEPT);
-      _playPauseBtn.onclick = null;
-      _playPauseBtn.addEventListener(
-        'click', handlePlayPause
-      );
-    };
-
     _stopBtn.disabled = false;
-    _stopBtn.onclick = () => {
-      send(MSG.RESUME_DECLINE);
-      _stopBtn.onclick = null;
-    };
+    _stopBtn.title = 'Start over';
+    _skipBackBtn.disabled = true;
+    _skipFwdBtn.disabled = true;
   }
 
   let _heartbeatTimer = null;
@@ -522,21 +853,25 @@
         renderSentences(sentences);
         startSentenceTracking();
       } else {
-        _textDisplay.textContent = msg.payload.chunkText;
+        setTextDisplayMessage(msg.payload.chunkText);
       }
       _textDisplay.scrollTop = 0;
     } else if (msg.type === MSG.RESUME_PROMPT) {
       showResumePrompt(msg.payload);
+    } else if (msg.type === MSG.SHOW_OVERLAY) {
+      showOverlay();
     } else if (msg.type === MSG.SERVER_STATUS) {
       if (!msg.payload.online && _status === 'playing') {
-        _textDisplay.textContent =
-          'Server disconnected. Retrying\u2026';
+        setTextDisplayMessage(
+          'Server disconnected. Retrying\u2026'
+        );
       }
     }
   });
 
   function init() {
     createOverlay();
+    window.addEventListener('resize', syncOutlineHeight);
 
     chrome.storage.local.get(['speed', 'voice'], (data) => {
       if (data.speed) {

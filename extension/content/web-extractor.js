@@ -116,6 +116,10 @@
         title: headingText,
         pageNum: 1,
         itemIndex: sections.length,
+        outlineLevel: Math.max(
+          0,
+          parseInt(h.tagName[1], 10) - 1
+        ),
         isReferences: /^references$/i.test(headingText)
           || /^bibliography$/i.test(headingText),
         isAbstract: /^abstract$/i.test(headingText)
@@ -146,6 +150,10 @@
         title: headingText,
         pageNum: 1,
         itemIndex: sections.length,
+        outlineLevel: Math.max(
+          0,
+          parseInt(h.tagName[1], 10) - 1
+        ),
         isReferences: /^references$/i.test(headingText)
           || /^bibliography$/i.test(headingText),
         isAbstract: false,

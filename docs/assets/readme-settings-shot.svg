@@ -1,0 +1,183 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1200"
+  height="760"
+  viewBox="0 0 1200 760"
+  fill="none"
+>
+  <defs>
+    <linearGradient id="bg" x1="60" y1="20" x2="1100" y2="720">
+      <stop offset="0" stop-color="#FFF8F1" />
+      <stop offset="1" stop-color="#F3D7C9" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#DA7756" />
+      <stop offset="1" stop-color="#EE9B72" />
+    </linearGradient>
+    <filter
+      id="panelShadow"
+      x="268"
+      y="98"
+      width="664"
+      height="568"
+      filterUnits="userSpaceOnUse"
+      color-interpolation-filters="sRGB"
+    >
+      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#966B59"
+        flood-opacity="0.16" />
+    </filter>
+  </defs>
+
+  <rect width="1200" height="760" rx="36" fill="url(#bg)" />
+  <text
+    x="106"
+    y="92"
+    fill="#2D211D"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="34"
+    font-weight="700"
+  >
+    Settings that stay simple
+  </text>
+  <text
+    x="106"
+    y="128"
+    fill="#6C5950"
+    font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+    font-size="18"
+  >
+    One clean page for server status, voice choice, reading defaults, and
+    resume behavior.
+  </text>
+
+  <g filter="url(#panelShadow)">
+    <rect x="292" y="126" width="616" height="512" rx="30" fill="#1E1A18" />
+    <rect x="292" y="126" width="616" height="5" rx="2.5"
+      fill="url(#accent)" />
+
+    <text
+      x="336"
+      y="176"
+      fill="#FAF9F6"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="26"
+      font-weight="700"
+    >
+      Speakademic Settings
+    </text>
+
+    <text
+      x="336"
+      y="228"
+      fill="#D9CEC8"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="14"
+      font-weight="700"
+      letter-spacing="0.08em"
+    >
+      SERVER
+    </text>
+    <rect x="336" y="246" width="528" height="54" rx="16" fill="#2A2522" />
+    <text
+      x="362"
+      y="278"
+      fill="#FAF9F6"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="15"
+    >
+      http://localhost:8880
+    </text>
+    <circle cx="366" cy="325" r="6" fill="#8BC488" />
+    <text
+      x="382"
+      y="330"
+      fill="#D7CEC8"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="14"
+    >
+      Connected
+    </text>
+
+    <text
+      x="336"
+      y="378"
+      fill="#D9CEC8"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="14"
+      font-weight="700"
+      letter-spacing="0.08em"
+    >
+      PLAYBACK
+    </text>
+    <rect x="336" y="396" width="250" height="54" rx="16" fill="#2A2522" />
+    <rect x="614" y="396" width="250" height="54" rx="16" fill="#2A2522" />
+    <text
+      x="362"
+      y="428"
+      fill="#FAF9F6"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="15"
+    >
+      Default voice  •  Bella
+    </text>
+    <text
+      x="640"
+      y="428"
+      fill="#FAF9F6"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="15"
+    >
+      Default speed  •  1.0x
+    </text>
+
+    <text
+      x="336"
+      y="500"
+      fill="#D9CEC8"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="14"
+      font-weight="700"
+      letter-spacing="0.08em"
+    >
+      READING
+    </text>
+
+    <rect x="336" y="524" width="528" height="58" rx="18" fill="#25211E" />
+    <rect x="356" y="541" width="56" height="24" rx="12" fill="url(#accent)" />
+    <circle cx="396" cy="553" r="9" fill="#FFF7F2" />
+    <text
+      x="434"
+      y="558"
+      fill="#FAF9F6"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="15"
+    >
+      Auto-resume from last position
+    </text>
+
+    <rect x="336" y="592" width="528" height="58" rx="18" fill="#25211E" />
+    <rect x="356" y="609" width="56" height="24" rx="12" fill="url(#accent)" />
+    <circle cx="396" cy="621" r="9" fill="#FFF7F2" />
+    <text
+      x="434"
+      y="626"
+      fill="#FAF9F6"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="15"
+    >
+      Skip references when you are done with the main paper
+    </text>
+  </g>
+
+  <rect x="924" y="156" width="146" height="40" rx="20" fill="#FFF7F1" />
+  <text
+    x="955"
+    y="181"
+    fill="#7A5B4D"
+    font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+    font-size="14"
+    font-weight="600"
+  >
+    Local setup
+  </text>
+</svg>

@@ -35,10 +35,10 @@ lsof -i :8880
 
 ## Extension Issues
 
-### Extension popup shows "Server offline"
+### Floating player shows "Server offline"
 
 1. Check the server is running: `curl http://localhost:8880/v1/audio/voices`
-2. If using a custom server URL, verify it in Settings (right-click icon → Options)
+2. If using a custom server URL, verify it in Settings (`chrome://extensions` → Speakademic → Extension options)
 
 ### "No text found in this PDF"
 
@@ -79,9 +79,9 @@ lsof -i :8880
 
 ### Extension doesn't appear on PDF page
 
-**Cause**: The floating overlay only appears after clicking Play.
+**Cause**: The floating overlay appears only after the extension injects it into the current page.
 
-**Fix**: Click the extension icon in the toolbar and press Play.
+**Fix**: Click the extension icon in the toolbar. The floating player should appear immediately on the page.
 
 ## Performance Issues
 
