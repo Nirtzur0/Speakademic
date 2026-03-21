@@ -69,24 +69,24 @@
     <td width="50%" valign="top">
       <img
         src="docs/assets/readme-overlay-shot.svg"
-        alt="Speakademic floating player product shot"
+        alt="Speakademic floating player with follow-scroll transcript"
         width="100%"
       />
       <br />
-      <strong>A player that stays out of the way.</strong><br />
-      Play, pause, skip, switch voices, and jump between sections without
-      breaking focus.
+      <strong>A player that keeps the text in view.</strong><br />
+      Playback, transcript follow-scroll, and section-aware progress stay
+      readable without turning the page into a dashboard.
     </td>
     <td width="50%" valign="top">
       <img
         src="docs/assets/readme-settings-shot.svg"
-        alt="Speakademic settings product shot"
+        alt="Speakademic outline panel with section hierarchy"
         width="100%"
       />
       <br />
-      <strong>Simple settings, not a setup maze.</strong><br />
-      Point Speakademic at your local server once, pick the reading defaults
-      you like, and let it remember the rest.
+      <strong>An outline you can open only when you need it.</strong><br />
+      Jump by section in a clean hierarchy, then collapse the panel and go
+      back to listening.
     </td>
   </tr>
 </table>
