@@ -41,7 +41,7 @@
 
 .sp__shell {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 10px;
 }
 
