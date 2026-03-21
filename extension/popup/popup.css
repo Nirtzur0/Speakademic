@@ -1,0 +1,123 @@
+:root {
+  --bg: #18181b;
+  --bg-secondary: #27272a;
+  --text: #fafafa;
+  --text-muted: #a1a1aa;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --error: #ef4444;
+  --success: #22c55e;
+  --radius: 8px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 280px;
+  font-family: -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.popup {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.popup__title {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.popup__server-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.status-dot--online {
+  background: var(--success);
+}
+
+.status-dot--offline {
+  background: var(--error);
+}
+
+.popup__status {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.popup__controls {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.popup__btn {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--bg-secondary);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.popup__btn:hover:not(:disabled) {
+  background: #3f3f46;
+}
+
+.popup__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.popup__btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.popup__btn--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.popup__progress {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.popup__error {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--error);
+  padding: 8px;
+  border-radius: var(--radius);
+  font-size: 11px;
+  word-break: break-word;
+}

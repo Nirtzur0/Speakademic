@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Kokoro PDF Reader",
+  "version": "0.1.0",
+  "description": "Read academic PDFs aloud using local Kokoro TTS",
+
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs",
+    "alarms"
+  ],
+
+  "host_permissions": [
+    "http://localhost:8880/*",
+    "http://127.0.0.1:8880/*"
+  ],
+
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": ["lib/pdf.worker.mjs"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
