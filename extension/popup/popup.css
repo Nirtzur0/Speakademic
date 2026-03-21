@@ -17,7 +17,7 @@
 }
 
 body {
-  width: 280px;
+  width: 300px;
   font-family: -apple-system, BlinkMacSystemFont,
     'Segoe UI', Roboto, sans-serif;
   font-size: 13px;
@@ -26,10 +26,10 @@ body {
 }
 
 .popup {
-  padding: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .popup__title {
@@ -54,12 +54,21 @@ body {
   flex-shrink: 0;
 }
 
-.status-dot--online {
-  background: var(--success);
+.status-dot--online { background: var(--success); }
+.status-dot--offline { background: var(--error); }
+
+.popup__pdf-info {
+  padding: 6px 8px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
 }
 
-.status-dot--offline {
-  background: var(--error);
+.popup__pdf-title {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .popup__status {
@@ -71,17 +80,18 @@ body {
 .popup__controls {
   display: flex;
   justify-content: center;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
 }
 
 .popup__btn {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border: 1px solid var(--bg-secondary);
   border-radius: var(--radius);
   background: var(--bg-secondary);
   color: var(--text);
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -89,29 +99,88 @@ body {
   transition: background 0.15s;
 }
 
-.popup__btn:hover:not(:disabled) {
-  background: #3f3f46;
+.popup__btn--sm {
+  width: 30px;
+  height: 30px;
+  font-size: 11px;
 }
 
-.popup__btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
+.popup__btn:hover:not(:disabled) { background: #3f3f46; }
+.popup__btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .popup__btn--primary {
+  width: 40px;
+  height: 40px;
   background: var(--accent);
   border-color: var(--accent);
+  border-radius: 50%;
+  font-size: 16px;
 }
 
 .popup__btn--primary:hover:not(:disabled) {
   background: var(--accent-hover);
 }
 
-.popup__progress {
-  text-align: center;
+.popup__progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.popup__progress-bar {
+  width: 100%;
+  height: 3px;
+  background: var(--bg-secondary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.popup__progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+.popup__progress-row {
+  display: flex;
+  justify-content: space-between;
   font-size: 11px;
   color: var(--text-muted);
 }
+
+.popup__section-info {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.popup__section-label {
+  color: var(--text-muted);
+}
+
+.popup__section-name {
+  color: var(--text);
+}
+
+.popup__section-nav {
+  display: flex;
+}
+
+.popup__select {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+.popup__select:focus { border-color: var(--accent); }
 
 .popup__error {
   background: rgba(239, 68, 68, 0.15);
@@ -120,4 +189,16 @@ body {
   border-radius: var(--radius);
   font-size: 11px;
   word-break: break-word;
+}
+
+.popup__footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 8px;
+}
+
+.popup__shortcut-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+  display: block;
+  text-align: center;
 }

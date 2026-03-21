@@ -37,6 +37,17 @@
     "128": "icons/icon128.png"
   },
 
+  "commands": {
+    "toggle-playback": {
+      "suggested_key": { "default": "Alt+Shift+P" },
+      "description": "Play or pause reading"
+    },
+    "stop-playback": {
+      "suggested_key": { "default": "Alt+Shift+S" },
+      "description": "Stop reading"
+    }
+  },
+
   "options_ui": {
     "page": "options/options.html",
     "open_in_tab": true

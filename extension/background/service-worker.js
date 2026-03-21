@@ -101,6 +101,7 @@ function broadcastStatus() {
     currentSection: getCurrentSection(),
     speed: state.speed,
     voice: state.voice,
+    pdfUrl: state.pdfUrl,
   };
 
   chrome.runtime.sendMessage(
@@ -303,6 +304,20 @@ async function handlePlay() {
     return;
   }
 
+  if (tab.url.startsWith('file://')) {
+    const allowed =
+      await chrome.extension.isAllowedFileSchemeAccess();
+    if (!allowed) {
+      setError(
+        'file_access',
+        'File access not enabled. Go to chrome://extensions,'
+        + ' find Kokoro PDF Reader, and enable'
+        + ' "Allow access to file URLs".'
+      );
+      return;
+    }
+  }
+
   state.tabId = tab.id;
   state.pdfUrl = tab.url;
   state.status = STATUS.EXTRACTING;
@@ -311,13 +326,18 @@ async function handlePlay() {
 
   try {
     const result = await extractText(tab.url);
-    const { fullText, sections, sectionCharOffsets } = result;
+    const {
+      fullText, sections, sectionCharOffsets, meta,
+    } = result;
 
     if (!fullText || !fullText.trim()) {
-      setError(
-        'no_text',
-        'No text found in this PDF. It may be scanned.'
-      );
+      const msg = meta?.isLikelyScanned
+        ? 'This PDF appears to be scanned/image-based.'
+          + ' Text extraction is not possible.'
+          + ' Try a PDF with selectable text,'
+          + ' or use an OCR tool first.'
+        : 'No text found in this PDF.';
+      setError('no_text', msg);
       return;
     }
 
@@ -783,6 +803,7 @@ chrome.runtime.onMessage.addListener(
           currentSection: getCurrentSection(),
           speed: state.speed,
           voice: state.voice,
+          pdfUrl: state.pdfUrl,
         });
         break;
 
@@ -799,6 +820,20 @@ chrome.runtime.onMessage.addListener(
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === KEEPALIVE_ALARM_NAME) {
     // Keep-alive ping — no action needed
+  }
+});
+
+// --- Global keyboard commands ---
+
+chrome.commands.onCommand.addListener((command) => {
+  if (command === 'toggle-playback') {
+    if (state.status === STATUS.PLAYING) {
+      handlePause();
+    } else {
+      handlePlay();
+    }
+  } else if (command === 'stop-playback') {
+    handleStop();
   }
 });
 

@@ -45,16 +45,37 @@ async function extractText(pdfUrl) {
 
   let doc;
   try {
-    doc = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
+    doc = await pdfjsLib.getDocument({
+      data: pdfBytes,
+      password: '',
+    }).promise;
   } catch (err) {
+    const msg = err.message || '';
+    if (msg.includes('password')
+      || msg.includes('encrypted')
+      || err.name === 'PasswordException') {
+      throw new PdfError(
+        'password_protected',
+        'This PDF is password-protected.'
+        + ' Please open an unprotected PDF.',
+        err
+      );
+    }
     throw new PdfError(
       'parse_failed',
-      `Cannot parse PDF: ${err.message}`,
+      `Cannot parse PDF: ${msg}`,
       err
     );
   }
 
   console.log(`[PDF] ${doc.numPages} pages found`);
+
+  if (doc.numPages > 500) {
+    console.warn(
+      `[PDF] Very large PDF (${doc.numPages} pages).`
+      + ' Performance may be slow.'
+    );
+  }
 
   const rawPages = [];
 
@@ -144,6 +165,16 @@ async function extractText(pdfUrl) {
   let fullText = textParts.join('\n\n');
   fullText = cleanSpecialContent(fullText);
 
+  const avgCharsPerPage = doc.numPages > 0
+    ? fullText.length / doc.numPages : 0;
+
+  if (fullText.length > 0 && avgCharsPerPage < 100) {
+    console.warn(
+      `[PDF] Low text density: ${avgCharsPerPage.toFixed(0)}`
+      + ' chars/page. Possibly scanned.'
+    );
+  }
+
   console.log(
     `[PDF] Extracted ${fullText.length} chars from`
     + ` ${cleanedPages.length} pages`
@@ -155,6 +186,12 @@ async function extractText(pdfUrl) {
     fullText,
     sections: sectionMap,
     sectionCharOffsets,
+    meta: {
+      numPages: doc.numPages,
+      avgCharsPerPage: Math.round(avgCharsPerPage),
+      isLikelyScanned: avgCharsPerPage < 100
+        && doc.numPages > 1,
+    },
   };
 }
 

@@ -13,25 +13,55 @@
       <span id="server-text">Checking server...</span>
     </div>
 
+    <div id="pdf-info" class="popup__pdf-info" hidden>
+      <div id="pdf-title" class="popup__pdf-title"></div>
+    </div>
+
     <div id="status-text" class="popup__status">Ready</div>
 
     <div class="popup__controls">
-      <button id="btn-play" class="popup__btn popup__btn--primary" title="Play">
-        &#9654;
-      </button>
-      <button id="btn-pause" class="popup__btn" title="Pause" disabled>
-        &#9646;&#9646;
-      </button>
-      <button id="btn-stop" class="popup__btn" title="Stop" disabled>
-        &#9632;
-      </button>
+      <button id="btn-skip-back" class="popup__btn popup__btn--sm"
+        title="Skip back" disabled>&#9664;&#9664;</button>
+      <button id="btn-play" class="popup__btn popup__btn--primary"
+        title="Play">&#9654;</button>
+      <button id="btn-pause" class="popup__btn"
+        title="Pause" disabled>&#9646;&#9646;</button>
+      <button id="btn-stop" class="popup__btn"
+        title="Stop" disabled>&#9632;</button>
+      <button id="btn-skip-fwd" class="popup__btn popup__btn--sm"
+        title="Skip forward" disabled>&#9654;&#9654;</button>
     </div>
 
-    <div id="progress" class="popup__progress" hidden>
-      <span id="progress-text">0 / 0</span>
+    <div id="progress" class="popup__progress-section" hidden>
+      <div class="popup__progress-bar">
+        <div id="progress-fill"
+          class="popup__progress-fill"></div>
+      </div>
+      <div class="popup__progress-row">
+        <span id="progress-text">0 / 0</span>
+        <span id="time-remaining"></span>
+      </div>
+    </div>
+
+    <div id="section-info" class="popup__section-info" hidden>
+      <span class="popup__section-label">Section:</span>
+      <span id="current-section" class="popup__section-name">
+      </span>
+    </div>
+
+    <div id="section-nav" class="popup__section-nav" hidden>
+      <select id="section-select" class="popup__select">
+        <option value="">Jump to section...</option>
+      </select>
     </div>
 
     <div id="error" class="popup__error" hidden></div>
+
+    <div class="popup__footer">
+      <span class="popup__shortcut-hint">
+        Space: play/pause &middot; Arrows: skip/speed
+      </span>
+    </div>
   </div>
   <script src="popup.js" type="module"></script>
 </body>
