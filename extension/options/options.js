@@ -112,7 +112,11 @@ saveBtn.addEventListener('click', async () => {
     { type: MSG.SAVE_SETTINGS, payload: settings },
     () => {
       saveStatus.textContent = 'Saved!';
-      setTimeout(() => { saveStatus.textContent = ''; }, 2000);
+      saveBtn.classList.add('options__btn--saved');
+      setTimeout(() => {
+        saveStatus.textContent = '';
+        saveBtn.classList.remove('options__btn--saved');
+      }, 2000);
     }
   );
 });

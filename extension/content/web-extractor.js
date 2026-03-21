@@ -1,8 +1,8 @@
 (function() {
   'use strict';
 
-  if (window._kokoroWebExtractorLoaded) return;
-  window._kokoroWebExtractorLoaded = true;
+  if (window._speakademicWebExtractorLoaded) return;
+  window._speakademicWebExtractorLoaded = true;
 
   console.log('[WebExtractor] Extracting article from',
     window.location.href);

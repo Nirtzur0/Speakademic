@@ -43,7 +43,7 @@ class TtsClient {
       if (err instanceof TtsError) throw err;
       throw new TtsError(
         'voices_failed',
-        'Cannot reach Kokoro server',
+        'Cannot reach TTS server',
         err
       );
     }
@@ -95,7 +95,7 @@ class TtsClient {
       if (err instanceof TtsError) throw err;
       throw new TtsError(
         'synthesis_failed',
-        'Cannot reach Kokoro server. Is it running?',
+        'Cannot reach TTS server. Is it running?',
         err
       );
     }
@@ -176,7 +176,7 @@ class TtsClient {
       if (err instanceof TtsError) throw err;
       throw new TtsError(
         'synthesis_failed',
-        'Cannot reach Kokoro server. Is it running?',
+        'Cannot reach TTS server. Is it running?',
         err
       );
     }

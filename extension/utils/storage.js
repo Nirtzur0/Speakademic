@@ -1,5 +1,5 @@
-const POSITIONS_KEY = 'kokoro_positions';
-const SETTINGS_KEY = 'kokoro_settings';
+const POSITIONS_KEY = 'speakademic_positions';
+const SETTINGS_KEY = 'speakademic_settings';
 const EXPIRY_DAYS = 30;
 const EXPIRY_MS = EXPIRY_DAYS * 24 * 60 * 60 * 1000;
 

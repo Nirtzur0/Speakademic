@@ -287,6 +287,7 @@ async function injectContentScript(tabId) {
       target: { tabId },
       files: [
         'utils/audio-player.js',
+        'content/icons.js',
         'content/overlay-player.js',
         'content/content-script.js',
       ],
@@ -354,7 +355,7 @@ async function handlePlay() {
   if (!online) {
     setError(
       'server_offline',
-      'Kokoro server not found. Start it with'
+      'TTS server not found. Start it with'
       + ' ./server/start-server.sh'
     );
     return;
@@ -367,7 +368,7 @@ async function handlePlay() {
       setError(
         'file_access',
         'File access not enabled. Go to chrome://extensions,'
-        + ' find Kokoro PDF Reader, and enable'
+        + ' find Speakademic, and enable'
         + ' "Allow access to file URLs".'
       );
       return;

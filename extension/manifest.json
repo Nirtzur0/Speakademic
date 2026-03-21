@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Kokoro PDF Reader",
-  "version": "0.1.0",
-  "description": "Read academic PDFs aloud using local Kokoro TTS",
+  "name": "Speakademic",
+  "version": "0.2.0",
+  "description": "Read academic papers aloud with beautiful local TTS",
 
   "permissions": [
     "activeTab",

@@ -1,8 +1,8 @@
 (function() {
   'use strict';
 
-  if (window._kokoroContentScriptLoaded) return;
-  window._kokoroContentScriptLoaded = true;
+  if (window._speakademicContentScriptLoaded) return;
+  window._speakademicContentScriptLoaded = true;
 
   const MSG = {
     PLAY: 'PLAY',
@@ -19,11 +19,11 @@
 
   const SPEED_OPTIONS = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
-  const player = window.KokoroAudioPlayer;
+  const player = window.SpeakademicAudioPlayer;
 
   if (!player) {
     console.error(
-      '[ContentScript] KokoroAudioPlayer not found'
+      '[ContentScript] SpeakademicAudioPlayer not found'
     );
     return;
   }

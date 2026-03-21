@@ -1,7 +1,7 @@
 (function() {
   'use strict';
 
-  if (window.KokoroAudioPlayer) return;
+  if (window.SpeakademicAudioPlayer) return;
 
   let _audio = null;
   let _onEnded = null;
@@ -76,11 +76,26 @@
     _onError = onError || null;
   }
 
-  window.KokoroAudioPlayer = {
+  function getDuration() {
+    return _audio ? _audio.duration : 0;
+  }
+
+  function getCurrentTime() {
+    return _audio ? _audio.currentTime : 0;
+  }
+
+  function isPlaying() {
+    return _audio ? !_audio.paused : false;
+  }
+
+  window.SpeakademicAudioPlayer = {
     play,
     pause,
     resume,
     stop,
     setCallbacks,
+    getDuration,
+    getCurrentTime,
+    isPlaying,
   };
 })();

@@ -1,8 +1,10 @@
 (function() {
   'use strict';
 
-  if (window._kokoroOverlayLoaded) return;
-  window._kokoroOverlayLoaded = true;
+  if (window._speakademicOverlayLoaded) return;
+  window._speakademicOverlayLoaded = true;
+
+  const ICONS = window._spIcons || {};
 
   const MSG = {
     PLAY: 'PLAY',
@@ -55,6 +57,12 @@
   let _voiceSelect;
   let _sectionSelect;
   let _sectionCurrent;
+  let _soundBars;
+
+  // Sentence highlighting state
+  let _sentenceSpans = [];
+  let _sentenceTimings = [];
+  let _highlightRAF = null;
 
   function send(type, payload = {}) {
     chrome.runtime.sendMessage({ type, payload });
@@ -72,41 +80,53 @@
   }
 
   function createOverlay() {
-    _root = el('div', 'kokoro-reader kokoro-reader--hidden', {
-      'data-kokoro-role': 'player',
+    _root = el('div', 'sp sp--hidden', {
+      'data-sp-role': 'player',
     });
 
-    _panel = el('div', 'kokoro-reader__panel');
-    _minimizedBtn = el('button',
-      'kokoro-reader__minimized kokoro-reader__minimized--hidden'
-    );
-    _minimizedBtn.innerHTML = '&#9654;';
+    _panel = el('div', 'sp__panel');
+    _minimizedBtn = el('button', 'sp__minimized sp__minimized--hidden');
     _minimizedBtn.title = 'Expand player';
     _minimizedBtn.addEventListener('click', handleExpand);
 
+    // Minimized button content: icon + sound bars + label
+    const minIcon = el('span', 'sp__minimized-icon');
+    minIcon.innerHTML = ICONS.play || '&#9654;';
+    _soundBars = el('span', 'sp__sound-bars');
+    for (let i = 0; i < 3; i++) {
+      _soundBars.appendChild(el('span', 'sp__sound-bar'));
+    }
+    const minLabel = el('span');
+    minLabel.textContent = 'Speakademic';
+    _minimizedBtn.append(minIcon, _soundBars, minLabel);
+
+    // Accent bar at top of panel
+    const accentBar = el('div', 'sp__accent-bar');
+
     // Header
-    const header = el('div', 'kokoro-reader__header');
-    const title = el('span', 'kokoro-reader__title');
-    title.textContent = 'Kokoro Reader';
-    const minBtn = el('button', 'kokoro-reader__minimize-btn');
-    minBtn.innerHTML = '&#8722;';
+    const header = el('div', 'sp__header');
+    const title = el('span', 'sp__title');
+    const dot = el('span', 'sp__title-dot');
+    title.appendChild(dot);
+    title.appendChild(document.createTextNode('Speakademic'));
+    const minBtn = el('button', 'sp__minimize-btn');
+    minBtn.innerHTML = ICONS.minimize || '&#8722;';
     minBtn.title = 'Minimize';
     minBtn.addEventListener('click', handleMinimize);
     header.append(title, minBtn);
     initDrag(header);
 
     // Controls
-    const controls = el('div', 'kokoro-reader__controls');
-    _skipBackBtn = createBtn('&#9664;&#9664;', 'Skip back');
+    const controls = el('div', 'sp__controls');
+    _skipBackBtn = createBtn(ICONS.skipBack || '&#9664;&#9664;', 'Skip back');
     _skipBackBtn.addEventListener('click', () => {
       send(MSG.SKIP_BACK);
     });
-    _playPauseBtn = createBtn('&#9654;', 'Play',
-      'kokoro-reader__btn--play');
+    _playPauseBtn = createBtn(ICONS.play || '&#9654;', 'Play', 'sp__btn--play');
     _playPauseBtn.addEventListener('click', handlePlayPause);
-    _stopBtn = createBtn('&#9632;', 'Stop');
+    _stopBtn = createBtn(ICONS.stop || '&#9632;', 'Stop');
     _stopBtn.addEventListener('click', () => send(MSG.STOP));
-    _skipFwdBtn = createBtn('&#9654;&#9654;', 'Skip forward');
+    _skipFwdBtn = createBtn(ICONS.skipForward || '&#9654;&#9654;', 'Skip forward');
     _skipFwdBtn.addEventListener('click', () => {
       send(MSG.SKIP_FORWARD);
     });
@@ -115,24 +135,23 @@
     );
 
     // Progress
-    const progress = el('div', 'kokoro-reader__progress');
-    const bar = el('div', 'kokoro-reader__progress-bar');
-    _progressFill = el('div', 'kokoro-reader__progress-fill');
+    const progress = el('div', 'sp__progress');
+    const bar = el('div', 'sp__progress-bar');
+    _progressFill = el('div', 'sp__progress-fill');
     bar.append(_progressFill);
-    _progressText = el('div', 'kokoro-reader__progress-text');
+    _progressText = el('div', 'sp__progress-text');
     _progressText.textContent = '0 / 0';
     progress.append(bar, _progressText);
 
     // Text display
-    _textDisplay = el('div', 'kokoro-reader__text-display');
+    _textDisplay = el('div', 'sp__text-display');
     _textDisplay.textContent = '';
 
     // Settings
-    const settings = el('div', 'kokoro-reader__settings');
+    const settings = el('div', 'sp__settings');
 
-    const speedSetting = el('div', 'kokoro-reader__setting');
-    const speedLabel = el('span',
-      'kokoro-reader__setting-label');
+    const speedSetting = el('div', 'sp__setting');
+    const speedLabel = el('span', 'sp__setting-label');
     speedLabel.textContent = 'Speed';
     _speedSelect = el('select');
     for (const s of SPEED_OPTIONS) {
@@ -149,9 +168,8 @@
     });
     speedSetting.append(speedLabel, _speedSelect);
 
-    const voiceSetting = el('div', 'kokoro-reader__setting');
-    const voiceLabel = el('span',
-      'kokoro-reader__setting-label');
+    const voiceSetting = el('div', 'sp__setting');
+    const voiceLabel = el('span', 'sp__setting-label');
     voiceLabel.textContent = 'Voice';
     _voiceSelect = el('select');
     const defaultOpt = el('option');
@@ -167,18 +185,15 @@
     settings.append(speedSetting, voiceSetting);
 
     // Sections
-    const sectionsWrap = el('div', 'kokoro-reader__sections');
-    const secLabel = el('div',
-      'kokoro-reader__section-label');
+    const sectionsWrap = el('div', 'sp__sections');
+    const secLabel = el('div', 'sp__section-label');
     secLabel.textContent = 'Section';
-    _sectionCurrent = el('div',
-      'kokoro-reader__section-current');
+    _sectionCurrent = el('div', 'sp__section-current');
     _sectionCurrent.textContent = '\u2014';
-    _sectionSelect = el('select',
-      'kokoro-reader__section-select');
+    _sectionSelect = el('select', 'sp__section-select');
     const secDefault = el('option');
     secDefault.value = '';
-    secDefault.textContent = 'Jump to section...';
+    secDefault.textContent = 'Jump to section\u2026';
     _sectionSelect.append(secDefault);
     _sectionSelect.addEventListener('change', () => {
       const idx = parseInt(_sectionSelect.value, 10);
@@ -187,18 +202,16 @@
       }
       _sectionSelect.value = '';
     });
-    sectionsWrap.append(secLabel, _sectionCurrent,
-      _sectionSelect);
+    sectionsWrap.append(secLabel, _sectionCurrent, _sectionSelect);
 
-    _panel.append(header, controls, progress, _textDisplay,
-      settings, sectionsWrap);
+    _panel.append(accentBar, header, controls, progress,
+      _textDisplay, settings, sectionsWrap);
     _root.append(_panel, _minimizedBtn);
     document.body.appendChild(_root);
   }
 
   function createBtn(html, title, extraClass) {
-    const cls = 'kokoro-reader__btn'
-      + (extraClass ? ' ' + extraClass : '');
+    const cls = 'sp__btn' + (extraClass ? ' ' + extraClass : '');
     const btn = el('button', cls);
     btn.innerHTML = html;
     btn.title = title;
@@ -213,18 +226,22 @@
 
   function handleMinimize() {
     _isMinimized = true;
-    _panel.classList.add('kokoro-reader__panel--hidden');
-    _minimizedBtn.classList.remove(
-      'kokoro-reader__minimized--hidden'
-    );
+    _panel.classList.add('sp__panel--exiting');
+    setTimeout(() => {
+      _panel.classList.add('sp__panel--hidden');
+      _panel.classList.remove('sp__panel--exiting');
+      _minimizedBtn.classList.remove('sp__minimized--hidden');
+    }, 200);
   }
 
   function handleExpand() {
     _isMinimized = false;
-    _panel.classList.remove('kokoro-reader__panel--hidden');
-    _minimizedBtn.classList.add(
-      'kokoro-reader__minimized--hidden'
-    );
+    _minimizedBtn.classList.add('sp__minimized--hidden');
+    _panel.classList.remove('sp__panel--hidden');
+    // Re-trigger entrance animation
+    _panel.style.animation = 'none';
+    _panel.offsetHeight; // force reflow
+    _panel.style.animation = '';
   }
 
   function initDrag(header) {
@@ -254,6 +271,87 @@
     });
   }
 
+  // ---- Sentence highlighting ----
+
+  function splitIntoSentences(text) {
+    if (!text || !text.trim()) return [];
+    // Split on sentence-ending punctuation followed by space
+    const parts = text.split(/(?<=[.!?])\s+/);
+    return parts.filter(s => s.trim().length > 0);
+  }
+
+  function renderSentences(sentences) {
+    _textDisplay.innerHTML = '';
+    _sentenceSpans = [];
+    _sentenceTimings = [];
+
+    if (sentences.length === 0) return;
+
+    const totalChars = sentences.reduce((sum, s) => sum + s.length, 0);
+    let cumulative = 0;
+
+    for (let i = 0; i < sentences.length; i++) {
+      const span = el('span', 'sp__sentence');
+      span.textContent = sentences[i] + ' ';
+      _textDisplay.appendChild(span);
+      _sentenceSpans.push(span);
+
+      const start = cumulative / totalChars;
+      cumulative += sentences[i].length;
+      const end = cumulative / totalChars;
+      _sentenceTimings.push({ start, end });
+    }
+  }
+
+  function startSentenceTracking() {
+    stopSentenceTracking();
+
+    const player = window.SpeakademicAudioPlayer;
+    if (!player || !player.getCurrentTime) return;
+
+    function tick() {
+      const duration = player.getDuration();
+      const current = player.getCurrentTime();
+
+      if (duration > 0 && _sentenceSpans.length > 0) {
+        const progress = current / duration;
+
+        for (let i = 0; i < _sentenceSpans.length; i++) {
+          const span = _sentenceSpans[i];
+          const timing = _sentenceTimings[i];
+
+          span.classList.remove('sp__sentence--active', 'sp__sentence--past');
+
+          if (progress >= timing.start && progress < timing.end) {
+            span.classList.add('sp__sentence--active');
+            // Auto-scroll active sentence into view
+            if (span.offsetTop > _textDisplay.scrollTop + _textDisplay.clientHeight - 20
+              || span.offsetTop < _textDisplay.scrollTop) {
+              span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          } else if (progress >= timing.end) {
+            span.classList.add('sp__sentence--past');
+          }
+        }
+      }
+
+      if (player.isPlaying()) {
+        _highlightRAF = requestAnimationFrame(tick);
+      }
+    }
+
+    _highlightRAF = requestAnimationFrame(tick);
+  }
+
+  function stopSentenceTracking() {
+    if (_highlightRAF) {
+      cancelAnimationFrame(_highlightRAF);
+      _highlightRAF = null;
+    }
+  }
+
+  // ---- State update ----
+
   function updateOverlay(state) {
     _status = state.status;
     _currentChunk = state.currentChunk || 0;
@@ -261,17 +359,19 @@
 
     const isIdle = _status === 'idle';
     const isPlaying = _status === 'playing';
-    const isPaused = _status === 'paused';
     const isActive = !isIdle && _status !== 'error';
 
     if (isIdle) {
-      _root.classList.add('kokoro-reader--hidden');
+      _root.classList.add('sp--hidden');
+      stopSentenceTracking();
       return;
     }
-    _root.classList.remove('kokoro-reader--hidden');
+    _root.classList.remove('sp--hidden');
 
+    // Play/pause icon
     _playPauseBtn.innerHTML = isPlaying
-      ? '&#9646;&#9646;' : '&#9654;';
+      ? (ICONS.pause || '&#9646;&#9646;')
+      : (ICONS.play || '&#9654;');
     _playPauseBtn.title = isPlaying ? 'Pause' : 'Play';
 
     _skipBackBtn.disabled = !isActive;
@@ -280,6 +380,7 @@
     _playPauseBtn.disabled =
       _status === 'extracting' || _status === 'loading';
 
+    // Progress
     if (_totalChunks > 0) {
       const pct = ((_currentChunk + 1) / _totalChunks) * 100;
       _progressFill.style.width = pct + '%';
@@ -289,8 +390,8 @@
       _progressFill.style.width = '0%';
       _progressText.textContent =
         _status === 'extracting'
-          ? 'Extracting text...'
-          : 'Loading...';
+          ? 'Extracting text\u2026'
+          : 'Loading\u2026';
     }
 
     if (state.currentSection) {
@@ -310,6 +411,15 @@
     if (state.sections && state.sections.length > 0) {
       populateSections(state.sections);
     }
+
+    // Sound bars animation on minimized button
+    if (isPlaying) {
+      _minimizedBtn.classList.add('sp__minimized--playing');
+      startSentenceTracking();
+    } else {
+      _minimizedBtn.classList.remove('sp__minimized--playing');
+      stopSentenceTracking();
+    }
   }
 
   function populateSections(sections) {
@@ -317,7 +427,7 @@
     _sectionSelect.innerHTML = '';
     const defaultOpt = el('option');
     defaultOpt.value = '';
-    defaultOpt.textContent = 'Jump to section...';
+    defaultOpt.textContent = 'Jump to section\u2026';
     _sectionSelect.append(defaultOpt);
 
     for (let i = 0; i < sections.length; i++) {
@@ -358,14 +468,14 @@
   }
 
   function showResumePrompt(payload) {
-    _root.classList.remove('kokoro-reader--hidden');
+    _root.classList.remove('sp--hidden');
     const pct = Math.round(
       (payload.chunkIndex / payload.totalChunks) * 100
     );
     _textDisplay.textContent =
-      `Resume from "${payload.section}" (${pct}% through)?`;
+      'Resume from \u201c' + payload.section + '\u201d (' + pct + '% through)?';
 
-    _playPauseBtn.innerHTML = '&#9654;';
+    _playPauseBtn.innerHTML = ICONS.play || '&#9654;';
     _playPauseBtn.title = 'Resume';
     _playPauseBtn.disabled = false;
     _playPauseBtn.onclick = () => {
@@ -407,14 +517,20 @@
       }
     } else if (msg.type === MSG.CHUNK_READY
       && msg.payload.chunkText) {
-      _textDisplay.textContent = msg.payload.chunkText;
+      const sentences = splitIntoSentences(msg.payload.chunkText);
+      if (sentences.length > 0) {
+        renderSentences(sentences);
+        startSentenceTracking();
+      } else {
+        _textDisplay.textContent = msg.payload.chunkText;
+      }
       _textDisplay.scrollTop = 0;
     } else if (msg.type === MSG.RESUME_PROMPT) {
       showResumePrompt(msg.payload);
     } else if (msg.type === MSG.SERVER_STATUS) {
       if (!msg.payload.online && _status === 'playing') {
         _textDisplay.textContent =
-          'Server disconnected. Retrying...';
+          'Server disconnected. Retrying\u2026';
       }
     }
   });
@@ -452,5 +568,5 @@
   }
 
   init();
-  console.log('[Overlay] Loaded');
+  console.log('[Speakademic] Overlay loaded');
 })();
