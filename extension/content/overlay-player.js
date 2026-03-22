@@ -39,6 +39,7 @@
   const OUTLINE_LABEL_OPEN = 'Hide outline';
   const OUTLINE_LABEL_CLOSED = 'Outline';
   const MAX_OUTLINE_LEVEL = 3;
+  const RESUME_LOADING_MESSAGE = 'Loading audio...';
 
   let _isMinimized = false;
   let _isDragging = false;
@@ -274,11 +275,13 @@
 
   function handleResumeAccept() {
     useDefaultControlActions();
+    setTextDisplayMessage(RESUME_LOADING_MESSAGE);
     send(MSG.RESUME_ACCEPT);
   }
 
   function handleResumeDecline() {
     useDefaultControlActions();
+    setTextDisplayMessage(RESUME_LOADING_MESSAGE);
     send(MSG.RESUME_DECLINE);
   }
 
@@ -803,14 +806,11 @@
 
   function showResumePrompt(payload) {
     showOverlay();
-    const pct = Math.round(
-      (payload.chunkIndex / payload.totalChunks) * 100
-    );
-    setTextDisplayMessage(
-      'Resume from \u201c' + payload.section
-        + '\u201d (' + pct + '% through)?'
-        + ' Play resumes. Stop starts over.'
-    );
+    const promptMessage = payload.message
+      || 'Resume from \u201c'
+        + (payload.section || 'saved position')
+        + '\u201d (0% through)?';
+    setTextDisplayMessage(promptMessage);
 
     _isResumePromptVisible = true;
     _playPauseAction = handleResumeAccept;

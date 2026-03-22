@@ -57,17 +57,17 @@
     font-size="42"
     font-weight="700"
   >
-    A calmer way to live with dense papers.
+    A calmer way to listen to dense papers and articles.
   </text>
   <text
     x="112"
     y="138"
     fill="#6B5850"
     font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
-    font-size="20"
+    font-size="19"
   >
-    Speakademic keeps the reader light: warm controls, a follow-along
-    transcript, and a collapsible outline when you need to jump.
+    Speakademic reads papers and articles in clean local voices, trims
+    academic noise, and keeps your place.
   </text>
 
   <g filter="url(#frameShadow)">
@@ -267,39 +267,39 @@
       font-size="12">4 Policy</text>
   </g>
 
-  <rect x="112" y="686" width="160" height="38" rx="19" fill="#FFF8F2" />
+  <rect x="112" y="686" width="178" height="38" rx="19" fill="#FFF8F2" />
   <text
-    x="144"
+    x="142"
     y="710"
     fill="#7D5C4F"
     font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
     font-size="15"
     font-weight="600"
   >
-    Local voice
+    PDFs + articles
   </text>
 
-  <rect x="290" y="686" width="212" height="38" rx="19" fill="#FFF8F2" />
+  <rect x="308" y="686" width="268" height="38" rx="19" fill="#FFF8F2" />
   <text
-    x="322"
+    x="334"
     y="710"
     fill="#7D5C4F"
     font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
     font-size="15"
     font-weight="600"
   >
-    Follow-scroll transcript
+    Citation + equation cleanup
   </text>
 
-  <rect x="520" y="686" width="196" height="38" rx="19" fill="#FFF8F2" />
+  <rect x="594" y="686" width="198" height="38" rx="19" fill="#FFF8F2" />
   <text
-    x="552"
+    x="624"
     y="710"
     fill="#7D5C4F"
     font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
     font-size="15"
     font-weight="600"
   >
-    Collapsible outline
+    Many voice profiles
   </text>
 </svg>

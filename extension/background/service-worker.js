@@ -29,6 +29,9 @@ import {
 import {
   buildSectionProgressSegments,
 } from '../utils/section-progress.js';
+import {
+  formatResumePrompt,
+} from '../utils/resume-copy.js';
 
 let tts = new TtsClient();
 
@@ -518,6 +521,11 @@ async function handlePlay() {
             chunkIndex: saved.chunkIndex,
             totalChunks: state.totalChunks,
             section: sectionName,
+            message: formatResumePrompt(
+              sectionName,
+              saved.chunkIndex,
+              state.totalChunks
+            ),
           },
         }).catch(() => {});
         broadcastStatus();
