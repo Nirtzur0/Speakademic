@@ -310,13 +310,14 @@ function isPdfUrl(url) {
 
 async function extractWebText(tabId) {
   return new Promise((resolve, reject) => {
+    // 25s timeout: allows 8s for SPA content to render + margin
     const timeout = setTimeout(() => {
       chrome.runtime.onMessage.removeListener(listener);
       reject(new Error(
         'Web text extraction timed out.'
         + ' The page may not contain readable content.'
       ));
-    }, 15000);
+    }, 25000);
 
     function listener(msg, sender) {
       if (msg.type === MSG.TEXT_EXTRACTED

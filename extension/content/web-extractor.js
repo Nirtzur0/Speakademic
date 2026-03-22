@@ -1,32 +1,96 @@
 (function() {
   'use strict';
 
-  if (window._speakademicWebExtractorLoaded) return;
-  window._speakademicWebExtractorLoaded = true;
+  // Allow re-extraction on retry (e.g., SPA content loaded late)
+  // but prevent double-running if injected twice in quick succession
+  if (window._speakademicWebExtractorRunning) return;
+  window._speakademicWebExtractorRunning = true;
+  // Clear the flag after extraction completes (set in runExtraction)
+  window._speakademicWebExtractorLoaded = false;
+
+  // Minimum chars to consider extraction successful
+  const MIN_CONTENT_LENGTH = 200;
+  // How long to wait for SPA content to render (ms)
+  const SPA_WAIT_MAX = 8000;
+  const SPA_POLL_INTERVAL = 400;
 
   console.log('[WebExtractor] Extracting article from',
     window.location.href);
 
-  try {
-    const result = extractArticle();
-    chrome.runtime.sendMessage({
-      type: 'TEXT_EXTRACTED',
-      payload: result,
-    });
-    console.log(
-      `[WebExtractor] Extracted ${result.fullText.length} chars`
-      + ` (${result.sections.length} sections)`
-    );
-  } catch (err) {
-    console.error('[WebExtractor] Failed:', err.message);
-    chrome.runtime.sendMessage({
-      type: 'TEXT_EXTRACTED',
-      payload: {
-        fullText: '',
-        sections: [],
-        sectionCharOffsets: [],
-        meta: { source: 'web', error: err.message },
-      },
+  runExtraction();
+
+  async function runExtraction() {
+    try {
+      let result = extractArticle();
+
+      // If we got too little content, the page might be an SPA
+      // that hasn't finished rendering. Poll for content.
+      if (!result.fullText
+        || result.fullText.trim().length < MIN_CONTENT_LENGTH) {
+        console.log(
+          '[WebExtractor] Low content ('
+          + (result.fullText?.length || 0)
+          + ' chars), waiting for SPA render...'
+        );
+        result = await waitForContent();
+      }
+
+      chrome.runtime.sendMessage({
+        type: 'TEXT_EXTRACTED',
+        payload: result,
+      });
+      console.log(
+        `[WebExtractor] Extracted ${result.fullText.length} chars`
+        + ` (${result.sections.length} sections)`
+      );
+    } catch (err) {
+      console.error('[WebExtractor] Failed:', err.message);
+      chrome.runtime.sendMessage({
+        type: 'TEXT_EXTRACTED',
+        payload: {
+          fullText: '',
+          sections: [],
+          sectionCharOffsets: [],
+          meta: { source: 'web', error: err.message },
+        },
+      });
+    } finally {
+      window._speakademicWebExtractorRunning = false;
+    }
+  }
+
+  /**
+   * Poll the DOM until enough content appears or timeout.
+   * Handles SPAs (React, Next.js, etc.) that render after load.
+   */
+  function waitForContent() {
+    return new Promise((resolve) => {
+      const start = Date.now();
+
+      function poll() {
+        const result = extractArticle();
+        if (result.fullText
+          && result.fullText.trim().length >= MIN_CONTENT_LENGTH) {
+          console.log(
+            '[WebExtractor] SPA content appeared after '
+            + (Date.now() - start) + 'ms'
+          );
+          resolve(result);
+          return;
+        }
+
+        if (Date.now() - start > SPA_WAIT_MAX) {
+          console.warn(
+            '[WebExtractor] SPA wait timed out, using what we have'
+          );
+          resolve(result);
+          return;
+        }
+
+        setTimeout(poll, SPA_POLL_INTERVAL);
+      }
+
+      setTimeout(poll, SPA_POLL_INTERVAL);
     });
   }
 
@@ -153,6 +217,7 @@
   }
 
   function extractFallback() {
+    // Stage 1: try known content selectors
     const selectors = [
       'article',
       'd-article',
@@ -171,14 +236,78 @@
     for (const sel of selectors) {
       const el = document.querySelector(sel);
       if (el && el.innerText.trim().length > 200) {
-        // Clone and strip junk before returning
         const clone = el.cloneNode(true);
         stripDomJunk(clone);
-        return clone.innerText;
+        const text = clone.innerText.trim();
+        if (text.length > 200) return text;
       }
     }
 
+    // Stage 2: content-density scoring — find the element with the
+    // most paragraph text, ignoring nav/sidebar/footer junk.
+    const best = findDensestContentBlock();
+    if (best) return best;
+
     return document.body.innerText || '';
+  }
+
+  /**
+   * Score DOM elements by "content density" — the ratio of
+   * paragraph text to total text. The element with the most
+   * long-paragraph text wins. This handles SPAs and unusual
+   * layouts where semantic selectors don't match.
+   */
+  function findDensestContentBlock() {
+    const candidates = document.querySelectorAll(
+      'div, section, main, article'
+    );
+    let bestEl = null;
+    let bestScore = 0;
+
+    for (const el of candidates) {
+      // Skip tiny or page-wide elements
+      const rect = el.getBoundingClientRect();
+      if (rect.width < 250 || rect.height < 200) continue;
+
+      // Count paragraph text (long <p> elements = real content)
+      const paras = el.querySelectorAll('p');
+      let paraChars = 0;
+      let longParas = 0;
+      for (const p of paras) {
+        const len = p.textContent.trim().length;
+        if (len > 60) {
+          paraChars += len;
+          longParas++;
+        }
+      }
+
+      // Need at least 3 real paragraphs
+      if (longParas < 3) continue;
+
+      // Score: paragraph text density relative to total text
+      const totalChars = el.textContent.length;
+      const density = paraChars / (totalChars || 1);
+      // Prefer elements with high density AND enough content
+      const score = paraChars * density;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestEl = el;
+      }
+    }
+
+    if (!bestEl) return null;
+
+    const clone = bestEl.cloneNode(true);
+    stripDomJunk(clone);
+    const text = clone.innerText.trim();
+
+    console.log(
+      '[WebExtractor] Content-density fallback: '
+      + text.length + ' chars'
+    );
+
+    return text.length > 200 ? text : null;
   }
 
   // ---- Leading metadata detection ----
@@ -244,6 +373,16 @@
     /^commenting\s+on\s+this/i,
     // Date formats: "04 December 2025", "12 Jan 2024"
     /^\d{1,2}\s+(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{4}\s*$/i,
+    // "Back to Articles", "Return to blog"
+    /^(?:back to|return to)\s+/i,
+    // "Upvote 889", "Like 42"
+    /^(?:upvote|like|clap)\s*\d*/i,
+    // "Update on GitHub", "View on GitHub"
+    /^(?:update|view|fork|star)\s+on\s+github/i,
+    // Author name lists: "Elie Bakouch eliebak Follow Leandro..."
+    /^[A-Z][a-z]+\s+[A-Z][a-z]+\s+\w+\s+Follow\s/i,
+    // "Community" section label
+    /^community\s*$/i,
   ];
 
   /**
