@@ -65,6 +65,19 @@ let _availableVoices = [];
 let _curatedVoices = [];
 const equationeer = new EquationeerClient();
 
+// Cache health check result for 30s to avoid repeated round-trips
+let _healthCache = { online: false, ts: 0 };
+const HEALTH_CACHE_TTL = 30000;
+
+async function cachedHealthCheck() {
+  if (Date.now() - _healthCache.ts < HEALTH_CACHE_TTL) {
+    return _healthCache.online;
+  }
+  const online = await tts.checkHealth();
+  _healthCache = { online, ts: Date.now() };
+  return online;
+}
+
 const state = {
   status: STATUS.IDLE,
   pdfUrl: null,
@@ -466,36 +479,38 @@ async function handlePlay() {
     return;
   }
 
-  let online = await tts.checkHealth();
+  // Run health check and file access check in parallel
+  const healthPromise = cachedHealthCheck();
+  const fileCheckPromise = tab.url.startsWith('file://')
+    ? chrome.extension.isAllowedFileSchemeAccess()
+    : Promise.resolve(true);
 
-  // If current TTS is down, try rebuilding (triggers cloud→local fallback)
+  let [online, fileAllowed] = await Promise.all([
+    healthPromise, fileCheckPromise,
+  ]);
+
   if (!online) {
+    _healthCache.ts = 0; // bust cache
     await rebuildTtsClient();
     online = await tts.checkHealth();
+    _healthCache = { online, ts: Date.now() };
   }
-
   broadcastServerStatus(online);
 
   if (!online) {
-    const msg = 'TTS server not available.'
+    setError('server_offline',
+      'TTS server not available.'
       + ' Make sure a local TTS server is running'
-      + ' (e.g. Kokoro on localhost:8880).';
-    setError('server_offline', msg);
+      + ' (e.g. Kokoro on localhost:8880).');
     return;
   }
 
-  if (tab.url.startsWith('file://')) {
-    const allowed =
-      await chrome.extension.isAllowedFileSchemeAccess();
-    if (!allowed) {
-      setError(
-        'file_access',
-        'File access not enabled. Go to chrome://extensions,'
-        + ' find Speakademic, and enable'
-        + ' "Allow access to file URLs".'
-      );
-      return;
-    }
+  if (!fileAllowed) {
+    setError('file_access',
+      'File access not enabled. Go to chrome://extensions,'
+      + ' find Speakademic, and enable'
+      + ' "Allow access to file URLs".');
+    return;
   }
 
   state.tabId = tab.id;
@@ -505,6 +520,15 @@ async function handlePlay() {
   broadcastStatus();
 
   try {
+    // Start overlay injection early (in parallel with extraction)
+    const overlayPromise = injectContentScript(tab.id)
+      .catch((err) => {
+        console.warn('[SW] Early overlay inject failed:', err.message);
+      });
+
+    // Start settings + position fetch early (parallel with extraction)
+    const settingsPromise = getSettings();
+
     let result;
     if (isPdfUrl(tab.url)) {
       result = await extractPdfText(tab.url);
@@ -512,8 +536,6 @@ async function handlePlay() {
       try {
         result = await extractWebText(tab.id);
       } catch (webErr) {
-        // If web extraction fails, try PDF extraction as fallback
-        // (handles cases where the URL serves a PDF without .pdf extension)
         console.warn(
           '[SW] Web extraction failed, trying PDF fallback:',
           webErr.message
@@ -521,7 +543,6 @@ async function handlePlay() {
         try {
           result = await extractPdfText(tab.url);
         } catch {
-          // If PDF also fails, throw the original web error
           throw webErr;
         }
       }
@@ -534,13 +555,10 @@ async function handlePlay() {
     if (!fullText || !fullText.trim()) {
       let msg;
       if (meta?.source === 'web') {
-        msg = 'No readable article content found'
-          + ' on this page.';
+        msg = 'No readable article content found on this page.';
       } else if (meta?.isLikelyScanned) {
         msg = 'This PDF appears to be scanned/image-based.'
-          + ' Text extraction is not possible.'
-          + ' Try a PDF with selectable text,'
-          + ' or use an OCR tool first.';
+          + ' Text extraction is not possible.';
       } else {
         msg = 'No text found in this document.';
       }
@@ -570,31 +588,31 @@ async function handlePlay() {
       + ` (${state.sections.length} sections)`
     );
 
-    await injectContentScript(tab.id);
+    // Wait for overlay injection to finish before sending chunks
+    await overlayPromise;
 
-    const settings = await getSettings();
+    const settings = await settingsPromise;
     state.equationMode = settings.equationMode || 'skip';
 
-    // Initialize Equationeer thread if equation explanation is enabled
+    // Initialize Equationeer if enabled (don't await — non-blocking)
     if (state.equationMode === 'explain') {
-      try {
-        const healthy = await equationeer.isHealthy();
+      equationeer.isHealthy().then(async (healthy) => {
         if (healthy) {
-          const title = meta?.title || '';
-          const abstract = meta?.abstract || '';
-          await equationeer.createThread(title, abstract);
-          console.log('[SW] Equationeer thread started');
+          try {
+            await equationeer.createThread(
+              meta?.title || '', meta?.abstract || ''
+            );
+            console.log('[SW] Equationeer thread started');
+          } catch (err) {
+            console.warn('[SW] Equationeer init failed:', err.message);
+            state.equationMode = 'skip';
+          }
         } else {
-          console.warn(
-            '[SW] Equationeer unavailable, falling back to skip'
-          );
           state.equationMode = 'skip';
         }
-      } catch (err) {
-        console.warn('[SW] Equationeer init failed:', err.message);
-        state.equationMode = 'skip';
-      }
+      }).catch(() => { state.equationMode = 'skip'; });
     }
+
     if (settings.autoResume) {
       const saved = await getPosition(tab.url);
       if (saved && saved.chunkIndex > 0
@@ -789,6 +807,9 @@ async function fetchAndSendChunk(index) {
   );
 
   try {
+    // Start prefetching next chunks while current one synthesizes
+    fillBuffer(index + 1);
+
     const audioBase64 = await fetchAudio(index);
 
     if (state.status === STATUS.IDLE) return;
@@ -812,8 +833,6 @@ async function fetchAndSendChunk(index) {
       );
       setError('send_failed', 'Lost connection to PDF tab');
     });
-
-    fillBuffer(index + 1);
   } catch (err) {
     console.error('[SW] Chunk fetch failed:', err.message);
 

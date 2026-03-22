@@ -10,11 +10,11 @@
 
   // Minimum chars to consider extraction successful
   const MIN_CONTENT_LENGTH = 200;
-  // How long to wait for SPA content to render (ms)
-  const SPA_WAIT_MAX = 8000;
-  const SPA_POLL_INTERVAL = 400;
+  // SPA wait: use MutationObserver (instant) with a hard timeout
+  const SPA_WAIT_MAX = 6000;
 
-  console.log('[WebExtractor] Extracting article from',
+  const _t0 = performance.now();
+  console.log('[WebExtractor] Extracting from',
     window.location.href);
 
   runExtraction();
@@ -23,8 +23,7 @@
     try {
       let result = extractArticle();
 
-      // If we got too little content, the page might be an SPA
-      // that hasn't finished rendering. Poll for content.
+      // If we got too little, wait for SPA content to render
       if (!result.fullText
         || result.fullText.trim().length < MIN_CONTENT_LENGTH) {
         console.log(
@@ -35,13 +34,15 @@
         result = await waitForContent();
       }
 
+      const elapsed = Math.round(performance.now() - _t0);
       chrome.runtime.sendMessage({
         type: 'TEXT_EXTRACTED',
         payload: result,
       });
       console.log(
-        `[WebExtractor] Extracted ${result.fullText.length} chars`
+        `[WebExtractor] Done: ${result.fullText.length} chars`
         + ` (${result.sections.length} sections)`
+        + ` in ${elapsed}ms`
       );
     } catch (err) {
       console.error('[WebExtractor] Failed:', err.message);
@@ -60,51 +61,65 @@
   }
 
   /**
-   * Poll the DOM until enough content appears or timeout.
-   * Handles SPAs (React, Next.js, etc.) that render after load.
+   * Wait for SPA content using MutationObserver (reacts instantly
+   * when new nodes are added) instead of polling. Falls back to a
+   * single re-check after timeout.
    */
   function waitForContent() {
     return new Promise((resolve) => {
-      const start = Date.now();
+      let settled = false;
+      let observer = null;
+      let debounceTimer = null;
 
-      function poll() {
+      function tryExtract(source) {
+        if (settled) return;
         const result = extractArticle();
         if (result.fullText
           && result.fullText.trim().length >= MIN_CONTENT_LENGTH) {
+          settled = true;
+          if (observer) observer.disconnect();
+          clearTimeout(debounceTimer);
           console.log(
-            '[WebExtractor] SPA content appeared after '
-            + (Date.now() - start) + 'ms'
+            '[WebExtractor] SPA content appeared ('
+            + source + ', '
+            + Math.round(performance.now() - _t0) + 'ms)'
           );
           resolve(result);
-          return;
         }
-
-        if (Date.now() - start > SPA_WAIT_MAX) {
-          console.warn(
-            '[WebExtractor] SPA wait timed out, using what we have'
-          );
-          resolve(result);
-          return;
-        }
-
-        setTimeout(poll, SPA_POLL_INTERVAL);
       }
 
-      setTimeout(poll, SPA_POLL_INTERVAL);
+      // Watch for DOM mutations — SPA frameworks add nodes
+      observer = new MutationObserver(() => {
+        // Debounce: SPAs often add many nodes in quick succession
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(
+          () => tryExtract('mutation'), 150
+        );
+      });
+      observer.observe(document.body, {
+        childList: true, subtree: true,
+      });
+
+      // Hard timeout — resolve with whatever we have
+      setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        observer.disconnect();
+        clearTimeout(debounceTimer);
+        console.warn('[WebExtractor] SPA wait timed out');
+        resolve(extractArticle());
+      }, SPA_WAIT_MAX);
     });
   }
 
   function extractArticle() {
-    // ── 1. Try site-specific adapters first ──
-    // They understand the DOM structure of arxiv, PMC, etc.
-    // and extract only the body text — no authors, no nav, no junk.
+    // ── 1. Site-specific adapters (fastest, most accurate) ──
     if (typeof _speakademicExtractWithAdapter === 'function') {
       const adapted = _speakademicExtractWithAdapter(
         document, window.location.href
       );
       if (adapted && adapted.fullText
         && adapted.fullText.trim().length > 50) {
-        console.log('[WebExtractor] Site adapter matched');
         adapted.fullText = cleanText(adapted.fullText);
         adapted.meta = {
           ...adapted.meta,
@@ -116,29 +131,27 @@
       }
     }
 
-    // ── 2. Fall back to Readability ──
+    // ── 2. Quick DOM extraction (fast — no Readability clone) ──
     let title = document.title || '';
     let fullText = '';
     let articleHtml = '';
 
-    if (typeof Readability === 'function') {
+    fullText = extractFallback();
+
+    // ── 3. Readability (slower — clones entire DOM) ──
+    // Only use if quick extraction got too little
+    if (fullText.length < 500
+      && typeof Readability === 'function') {
       const clonedDoc = document.cloneNode(true);
-      // Pre-clean DOM before Readability sees it
       stripDomJunk(clonedDoc);
       const article = new Readability(clonedDoc).parse();
 
       if (article && article.textContent
-        && article.textContent.trim().length > 200) {
+        && article.textContent.trim().length > fullText.length) {
         fullText = article.textContent;
         articleHtml = article.content;
         title = article.title || title;
       }
-    }
-
-    // ── 3. Fallback: direct DOM extraction ──
-    if (!fullText || fullText.trim().length < 200) {
-      fullText = extractFallback();
-      articleHtml = '';
     }
 
     // Extract LaTeX from MathJax/KaTeX before cleaning
