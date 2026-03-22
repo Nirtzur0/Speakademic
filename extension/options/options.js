@@ -9,6 +9,8 @@ const voiceSelect = document.getElementById('default-voice');
 const autoResumeCheck = document.getElementById('auto-resume');
 const skipRefsCheck = document.getElementById('skip-references');
 const equationModeSelect = document.getElementById('equation-mode');
+const equationVerbositySelect = document.getElementById('equation-verbosity');
+const verbosityField = document.getElementById('verbosity-field');
 const saveBtn = document.getElementById('btn-save');
 const saveStatus = document.getElementById('save-status');
 
@@ -125,6 +127,13 @@ async function updateServerStatus() {
     ? 'Connected' : 'Not reachable';
 }
 
+// Show/hide verbosity dropdown based on equation mode
+function syncVerbosityVisibility() {
+  verbosityField.style.display =
+    equationModeSelect.value === 'explain' ? '' : 'none';
+}
+equationModeSelect.addEventListener('change', syncVerbosityVisibility);
+
 saveBtn.addEventListener('click', async () => {
   const settings = {
     serverUrl: serverUrlInput.value.trim()
@@ -134,6 +143,7 @@ saveBtn.addEventListener('click', async () => {
     autoResume: autoResumeCheck.checked,
     skipReferences: skipRefsCheck.checked,
     equationMode: equationModeSelect.value,
+    equationVerbosity: equationVerbositySelect.value,
   };
 
   chrome.runtime.sendMessage(
@@ -287,6 +297,9 @@ modeLocal.addEventListener('change', async () => {
     autoResumeCheck.checked = settings.autoResume !== false;
     skipRefsCheck.checked = settings.skipReferences !== false;
     equationModeSelect.value = settings.equationMode || 'skip';
+    equationVerbositySelect.value =
+      settings.equationVerbosity || 'inline';
+    syncVerbosityVisibility();
   }
 
   const voices = await loadVoices();

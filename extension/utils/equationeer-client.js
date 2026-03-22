@@ -96,6 +96,65 @@ class EquationeerClient {
     }
   }
 
+  /**
+   * Fast inline explanation — single LLM call, short narration.
+   * Returns a concise spoken phrase (15-40 words) for inline TTS.
+   */
+  async explainInline(latex, preContext = '', postContext = '', section = '') {
+    if (!this._threadId) {
+      console.warn('[Equationeer] No active thread');
+      return null;
+    }
+
+    const cacheKey = latex.trim();
+    if (this._explanationCache.has(cacheKey)) {
+      return this._explanationCache.get(cacheKey);
+    }
+
+    if (this._pending.has(cacheKey)) {
+      return this._pending.get(cacheKey);
+    }
+
+    const promise = this._fetchInline(
+      latex, preContext, postContext, section
+    );
+    this._pending.set(cacheKey, promise);
+
+    try {
+      const result = await promise;
+      this._pending.delete(cacheKey);
+      return result;
+    } catch (err) {
+      this._pending.delete(cacheKey);
+      throw err;
+    }
+  }
+
+  async _fetchInline(latex, preContext, postContext, section) {
+    const resp = await this._post(
+      `/threads/${this._threadId}/explain-inline`,
+      {
+        raw_latex: latex,
+        pre_context: preContext,
+        post_context: postContext,
+        section: section,
+      }
+    );
+
+    const narration = resp.narration || null;
+
+    if (narration) {
+      this._explanationCache.set(latex.trim(), narration);
+    }
+
+    console.log(
+      `[Equationeer] Inline eq ${resp.equation_id}`
+      + ` (${narration ? narration.split(' ').length : 0} words)`
+    );
+
+    return narration;
+  }
+
   async _fetchExplanation(latex, preContext, postContext, section) {
     // 1. Add the equation to the thread
     const addResp = await this._post(
@@ -110,7 +169,7 @@ class EquationeerClient {
 
     const eqId = addResp.equation_id;
 
-    // 2. Get the explanation (runs the full prompt chain)
+    // 2. Get the explanation (runs the full 4-stage prompt chain)
     const explainResp = await this._post(
       `/threads/${this._threadId}/equations/${eqId}/explain`,
       { include_tts: true }
@@ -118,13 +177,12 @@ class EquationeerClient {
 
     const narration = explainResp.level4_tts || null;
 
-    // Cache the result
     if (narration) {
       this._explanationCache.set(latex.trim(), narration);
     }
 
     console.log(
-      `[Equationeer] Eq ${eqId} explained`
+      `[Equationeer] Eq ${eqId} detailed`
       + ` (${narration ? narration.split(' ').length : 0} words)`
     );
 

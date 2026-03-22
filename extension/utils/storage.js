@@ -75,6 +75,7 @@ const DEFAULT_SETTINGS = {
   autoResume: true,
   skipReferences: true,
   equationMode: 'skip',
+  equationVerbosity: 'inline',
 };
 
 async function getSettings() {

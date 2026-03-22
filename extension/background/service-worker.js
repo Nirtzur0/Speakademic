@@ -120,6 +120,7 @@ function resetState() {
   state.chunkSectionMap = [];
   state.progressSections = [];
   state.equationMode = 'skip';
+  state.equationVerbosity = 'inline';
   clearAudioBuffer();
   _pendingResumeChunk = null;
   stopPositionSave();
@@ -593,6 +594,7 @@ async function handlePlay() {
 
     const settings = await settingsPromise;
     state.equationMode = settings.equationMode || 'skip';
+    state.equationVerbosity = settings.equationVerbosity || 'inline';
 
     // Initialize Equationeer if enabled (don't await — non-blocking)
     if (state.equationMode === 'explain') {
@@ -709,7 +711,8 @@ async function fetchAudio(index) {
  */
 async function _resolveEquationChunk(text, index) {
   const sectionIdx = state.chunkSectionMap[index];
-  const section = state.sections[sectionIdx] || '';
+  const sectionObj = state.sections[sectionIdx];
+  const section = sectionObj?.title || '';
 
   const eqStripRe = /\[equation(?::[^\]]*?)?\]/g;
 
@@ -721,6 +724,9 @@ async function _resolveEquationChunk(text, index) {
     ? state.chunks[index + 1].replace(eqStripRe, '').slice(0, 200)
     : '';
 
+  // Pick explanation method based on verbosity setting
+  const useInline = state.equationVerbosity !== 'detailed';
+
   // Parse the chunk into alternating prose / equation-marker segments
   const eqMarkerRe = /\[equation(?::([^\]]*?))?\]/g;
   const resolved = [];
@@ -728,22 +734,33 @@ async function _resolveEquationChunk(text, index) {
   let match;
 
   while ((match = eqMarkerRe.exec(text)) !== null) {
-    // Prose before this marker
     const prose = text.slice(lastIndex, match.index).trim();
     if (prose) resolved.push(prose);
     lastIndex = match.index + match[0].length;
 
-    // Raw equation content (may be LaTeX, glyph chars, or empty)
     const rawEquation = (match[1] || '').trim();
+    const latex = rawEquation || '(equation from document)';
+
+    // Build tight context: prose before + prose after this marker
+    const localPre = (preContext + ' ' + prose).trim();
+    const localPost = (
+      text.slice(lastIndex).replace(eqStripRe, '').trim().slice(0, 200)
+      || postContext
+    ).trim();
 
     try {
-      const narration = await equationeer.explainEquation(
-        rawEquation || '(equation from document)',
-        preContext + ' ' + prose,
-        text.slice(lastIndex).replace(eqStripRe, '').trim().slice(0, 200)
-          || postContext,
-        section
-      );
+      let narration;
+      if (useInline) {
+        // Fast: single LLM call, 15-40 word narration
+        narration = await equationeer.explainInline(
+          latex, localPre, localPost, section
+        );
+      } else {
+        // Detailed: full 4-stage chain, ~100 word narration
+        narration = await equationeer.explainEquation(
+          latex, localPre, localPost, section
+        );
+      }
       if (narration) {
         resolved.push(narration);
       }
@@ -751,11 +768,9 @@ async function _resolveEquationChunk(text, index) {
       console.warn(
         `[SW] Equation explanation failed:`, err.message
       );
-      // Silently skip on failure
     }
   }
 
-  // Trailing prose after last marker
   const trailing = text.slice(lastIndex).trim();
   if (trailing) resolved.push(trailing);
 
