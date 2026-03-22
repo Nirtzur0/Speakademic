@@ -1,5 +1,6 @@
 const POSITIONS_KEY = 'speakademic_positions';
 const SETTINGS_KEY = 'speakademic_settings';
+const TTS_MODE_KEY = 'speakademic_tts_mode';
 const EXPIRY_DAYS = 30;
 const EXPIRY_MS = EXPIRY_DAYS * 24 * 60 * 60 * 1000;
 
@@ -73,7 +74,7 @@ const DEFAULT_SETTINGS = {
   defaultSpeed: 1.0,
   autoResume: true,
   skipReferences: true,
-  skipEquations: false,
+  equationMode: 'skip',
 };
 
 async function getSettings() {
@@ -90,6 +91,15 @@ async function saveSettings(settings) {
   return merged;
 }
 
+async function getTtsMode() {
+  const data = await chrome.storage.local.get(TTS_MODE_KEY);
+  return data[TTS_MODE_KEY] || 'cloud';
+}
+
+async function saveTtsMode(mode) {
+  await chrome.storage.local.set({ [TTS_MODE_KEY]: mode });
+}
+
 export {
   savePosition,
   getPosition,
@@ -98,4 +108,6 @@ export {
   getSettings,
   saveSettings,
   DEFAULT_SETTINGS,
+  getTtsMode,
+  saveTtsMode,
 };

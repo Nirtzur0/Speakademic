@@ -10,8 +10,18 @@ class TtsError extends Error {
 }
 
 class TtsClient {
-  constructor(baseUrl = SERVER_URL) {
+  constructor(baseUrl = SERVER_URL, authHeaderFn = null) {
     this._baseUrl = baseUrl;
+    this._authHeaderFn = authHeaderFn;
+  }
+
+  async _getHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    if (this._authHeaderFn) {
+      const auth = await this._authHeaderFn();
+      Object.assign(headers, auth);
+    }
+    return headers;
   }
 
   async checkHealth() {
@@ -49,14 +59,22 @@ class TtsClient {
     }
   }
 
+  _getSynthUrl() {
+    if (this._authHeaderFn) {
+      return `${this._baseUrl}/tts/synthesize`;
+    }
+    return `${this._baseUrl}/v1/audio/speech`;
+  }
+
   async synthesize(text, { voice, speed, signal } = {}) {
     const startTime = performance.now();
     try {
+      const headers = await this._getHeaders();
       const res = await fetch(
-        `${this._baseUrl}/v1/audio/speech`,
+        this._getSynthUrl(),
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             model: 'kokoro',
             input: text,
@@ -67,6 +85,21 @@ class TtsClient {
           signal,
         }
       );
+      if (res.status === 401) {
+        throw new TtsError(
+          'auth_expired',
+          'Authentication expired. Please sign in again.'
+        );
+      }
+      if (res.status === 403) {
+        const body = await res.json().catch(() => ({}));
+        const err = new TtsError(
+          'quota_exceeded',
+          'Usage quota exceeded'
+        );
+        err.usage = body.usage || null;
+        throw err;
+      }
       if (!res.ok) {
         const body = await res.text().catch(() => '');
         throw new TtsError(
@@ -106,11 +139,12 @@ class TtsClient {
   ) {
     const startTime = performance.now();
     try {
+      const headers = await this._getHeaders();
       const res = await fetch(
-        `${this._baseUrl}/v1/audio/speech`,
+        this._getSynthUrl(),
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             model: 'kokoro',
             input: text,
@@ -122,6 +156,21 @@ class TtsClient {
           signal,
         }
       );
+      if (res.status === 401) {
+        throw new TtsError(
+          'auth_expired',
+          'Authentication expired. Please sign in again.'
+        );
+      }
+      if (res.status === 403) {
+        const body = await res.json().catch(() => ({}));
+        const err = new TtsError(
+          'quota_exceeded',
+          'Usage quota exceeded'
+        );
+        err.usage = body.usage || null;
+        throw err;
+      }
       if (!res.ok) {
         const body = await res.text().catch(() => '');
         throw new TtsError(

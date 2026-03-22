@@ -1,6 +1,12 @@
 const SERVER_URL = 'http://localhost:8880';
+const CLOUD_SERVER_URL = 'https://api.speakademic.com';
 const DEFAULT_VOICE = 'af_bella';
 const DEFAULT_SPEED = 1.0;
+
+const TTS_MODE = {
+  LOCAL: 'local',
+  CLOUD: 'cloud',
+};
 const CHUNK_TARGET_LENGTH = 300;
 const CHUNK_MIN_LENGTH = 100;
 const CHUNK_MAX_LENGTH = 500;
@@ -14,6 +20,13 @@ const PREFETCH_BUFFER_SIZE = 3;
 const ADAPTIVE_SLOW_RATIO = 0.5;
 const ADAPTIVE_MIN_CHUNK = 150;
 const ADAPTIVE_MAX_CHUNK = 600;
+
+const EQUATIONEER_URL = 'http://localhost:8000';
+
+const EQUATION_MODE = {
+  SKIP: 'skip',
+  EXPLAIN: 'explain',
+};
 
 const MSG = {
   PLAY: 'PLAY',
@@ -39,6 +52,13 @@ const MSG = {
   STATUS_UPDATE: 'STATUS_UPDATE',
   SERVER_STATUS: 'SERVER_STATUS',
   ERROR: 'ERROR',
+  LOGIN: 'LOGIN',
+  LOGOUT: 'LOGOUT',
+  AUTH_STATE: 'AUTH_STATE',
+  SUBSCRIPTION_STATUS: 'SUBSCRIPTION_STATUS',
+  UPGRADE: 'UPGRADE',
+  MANAGE_SUBSCRIPTION: 'MANAGE_SUBSCRIPTION',
+  SET_TTS_MODE: 'SET_TTS_MODE',
 };
 
 const STATUS = {
@@ -52,6 +72,10 @@ const STATUS = {
 
 export {
   SERVER_URL,
+  CLOUD_SERVER_URL,
+  EQUATIONEER_URL,
+  TTS_MODE,
+  EQUATION_MODE,
   DEFAULT_VOICE,
   DEFAULT_SPEED,
   CHUNK_TARGET_LENGTH,

@@ -72,6 +72,97 @@ const NON_AUTHOR_TOKENS = new Set([
   'wednesday',
 ]);
 
+// Minimum consecutive math-font items to form an [equation] block.
+// Single math-font chars (italic variables like x, n) are kept as-is.
+const MATH_RUN_MIN_LENGTH = 2;
+
+// Patterns for metadata junk that should never be read aloud
+const METADATA_JUNK_PATTERNS = [
+  // Copyright / permissions boilerplate
+  /permission to (?:make|copy)\s+digital/i,
+  /copyright\s+(?:©|\(c\))\s*\d{4}/i,
+  /licensed under (?:a )?creative commons/i,
+  /all rights reserved/i,
+  // Identifiers
+  /\barXiv:\s*\d{4}\.\d{4,5}/i,
+  /\bDOI:\s*\S+/i,
+  /\bISSN:\s*\S+/i,
+  /\bISBN:\s*\S+/i,
+  // ACM / IEEE reference format lines
+  /ACM Reference Format:/i,
+  /IEEE (?:Trans|Conference)/i,
+  // Submission / acceptance dates as standalone lines
+  /^(?:submitted|received|accepted|revised|published)\s*:?\s*(?:on\s+)?(?:january|february|march|april|may|june|july|august|september|october|november|december|\d)/i,
+  // Keywords line
+  /^keywords\s*:/i,
+  /^categories\s*:/i,
+  /^(?:CCS )?concepts\s*:/i,
+  // Email addresses
+  /^\{?[\w.+-]+@[\w.-]+\}?$/,
+  /^[\w.+-]+@[\w.-]+(?:,\s*[\w.+-]+@[\w.-]+)*$/,
+];
+
+// Figure / table caption patterns
+const FIGURE_TABLE_CAPTION_PATTERN =
+  /^(?:figure|fig\.|table|tab\.)\s*\d+[.:]/i;
+
+// Square bracket numeric citation patterns: [1], [2, 3], [1-5], [1, 3-7]
+const SQUARE_BRACKET_CITATION_PATTERN =
+  /\[\s*\d+(?:\s*[-–,]\s*\d+)*\s*\]/g;
+
+// Unicode math symbol → spoken word map
+const UNICODE_MATH_MAP = [
+  [/∈/g, ' in '],
+  [/∉/g, ' not in '],
+  [/∀/g, ' for all '],
+  [/∃/g, ' there exists '],
+  [/∄/g, ' there does not exist '],
+  [/∑/g, ' the sum of '],
+  [/∏/g, ' the product of '],
+  [/∫/g, ' the integral of '],
+  [/∂/g, ' partial '],
+  [/∇/g, ' the gradient of '],
+  [/∞/g, ' infinity '],
+  [/∝/g, ' proportional to '],
+  [/·/g, ' times '],
+  [/×/g, ' times '],
+  [/÷/g, ' divided by '],
+  [/≠/g, ' not equal to '],
+  [/≡/g, ' equivalent to '],
+  [/⊂/g, ' subset of '],
+  [/⊃/g, ' superset of '],
+  [/⊆/g, ' subset of or equal to '],
+  [/⊇/g, ' superset of or equal to '],
+  [/∅/g, ' the empty set '],
+  [/∩/g, ' intersection '],
+  [/∪/g, ' union '],
+  [/¬/g, ' not '],
+  [/∧/g, ' and '],
+  [/∨/g, ' or '],
+  [/⟨/g, ''],
+  [/⟩/g, ''],
+  [/‖/g, ' norm of '],
+  [/√/g, ' the square root of '],
+  [/ℝ/g, ' R '],
+  [/ℤ/g, ' Z '],
+  [/ℕ/g, ' N '],
+  [/ℂ/g, ' C '],
+  [/ℚ/g, ' Q '],
+];
+
+// Superscript / subscript Unicode → normal text
+const SUPERSCRIPT_MAP = {
+  '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4',
+  '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9',
+  '⁺': '+', '⁻': '-', '⁼': '=', '⁽': '(', '⁾': ')',
+  'ⁿ': 'n', 'ⁱ': 'i',
+};
+const SUBSCRIPT_MAP = {
+  '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4',
+  '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9',
+  '₊': '+', '₋': '-', '₌': '=', '₍': '(', '₎': ')',
+};
+
 function stripHeadersFooters(pages) {
   if (pages.length < 3) return pages;
 
@@ -155,26 +246,44 @@ function isMathFont(fontName) {
   return MATH_FONT_PATTERNS.some((p) => p.test(fontName));
 }
 
+/**
+ * Replace math-font runs with [equation:<raw_text>] markers.
+ * Single isolated math-font characters (italic variables) are kept as-is.
+ */
 function cleanEquations(items) {
   const result = [];
-  let inMathRun = false;
+  let mathRun = [];
+
+  function flushMathRun() {
+    if (mathRun.length === 0) return;
+
+    if (mathRun.length < MATH_RUN_MIN_LENGTH) {
+      // Single math-font char — keep it as regular text (italic var name)
+      for (const item of mathRun) {
+        result.push(item);
+      }
+    } else {
+      // Real equation block — collect raw text and emit marker
+      const rawText = mathRun.map((it) => it.text).join('');
+      const firstItem = mathRun[0];
+      result.push({
+        ...firstItem,
+        text: ` [equation:${rawText}] `,
+        _isMathReplacement: true,
+      });
+    }
+    mathRun = [];
+  }
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
 
     if (isMathFont(item.fontName)) {
-      if (!inMathRun) {
-        inMathRun = true;
-        result.push({
-          ...item,
-          text: ' [equation] ',
-          _isMathReplacement: true,
-        });
-      }
+      mathRun.push(item);
       continue;
     }
 
-    inMathRun = false;
+    flushMathRun();
 
     let cleaned = item.text;
 
@@ -182,12 +291,13 @@ function cleanEquations(items) {
       LATEX_REMNANT_PATTERN.test(cleaned)
       || LATEX_SYNTAX_PATTERN.test(cleaned)
     ) {
-      cleaned = ' [equation] ';
+      cleaned = ` [equation:${item.text}] `;
     }
 
     result.push({ ...item, text: cleaned });
   }
 
+  flushMathRun();
   return result;
 }
 
@@ -278,6 +388,9 @@ function isLikelyCitationGroup(content) {
   return parts.every(isLikelyCitationSegment);
 }
 
+/**
+ * Remove parenthetical author-year citations: (Smith, 2020)
+ */
 function stripParentheticalCitations(text) {
   return text.replace(/\(([^()]*)\)/g, (match, content) => {
     if (!isLikelyCitationGroup(content)) {
@@ -285,6 +398,73 @@ function stripParentheticalCitations(text) {
     }
     return '';
   });
+}
+
+/**
+ * Remove square bracket numeric citations: [1], [2, 3], [1-5]
+ */
+function stripSquareBracketCitations(text) {
+  return text.replace(SQUARE_BRACKET_CITATION_PATTERN, '');
+}
+
+/**
+ * Remove metadata junk lines (DOI, arXiv, copyright, emails, keywords).
+ */
+function stripMetadataJunk(text) {
+  return text.split('\n').filter((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return true;
+    return !METADATA_JUNK_PATTERNS.some((p) => p.test(trimmed));
+  }).join('\n');
+}
+
+/**
+ * Remove or mute figure/table captions so they don't interrupt flow.
+ * Captions starting with "Figure N:" or "Table N:" are removed.
+ */
+function stripFigureTableCaptions(text) {
+  return text.split('\n').filter((line) => {
+    return !FIGURE_TABLE_CAPTION_PATTERN.test(line.trim());
+  }).join('\n');
+}
+
+/**
+ * Convert Unicode superscripts/subscripts to readable form.
+ * "x²" → "x to the 2", "x₁" → "x 1"
+ */
+function convertSuperSubscripts(text) {
+  let result = text;
+
+  // Superscripts: group consecutive ones
+  const superRe = new RegExp(
+    `[${Object.keys(SUPERSCRIPT_MAP).join('')}]+`, 'g'
+  );
+  result = result.replace(superRe, (match) => {
+    const digits = [...match].map((ch) => SUPERSCRIPT_MAP[ch] || ch).join('');
+    return ` to the ${digits}`;
+  });
+
+  // Subscripts: group consecutive ones
+  const subRe = new RegExp(
+    `[${Object.keys(SUBSCRIPT_MAP).join('')}]+`, 'g'
+  );
+  result = result.replace(subRe, (match) => {
+    const digits = [...match].map((ch) => SUBSCRIPT_MAP[ch] || ch).join('');
+    return ` sub ${digits}`;
+  });
+
+  return result;
+}
+
+/**
+ * Convert Unicode math symbols to spoken words.
+ */
+function convertUnicodeMathSymbols(text) {
+  let result = text;
+  for (const [pattern, replacement] of UNICODE_MATH_MAP) {
+    result = result.replace(pattern, replacement);
+  }
+  return result;
 }
 
 function cleanSpecialContent(text) {
@@ -306,16 +486,45 @@ function cleanSpecialContent(text) {
   // 3. Replace long URLs with "link"
   cleaned = cleaned.replace(URL_PATTERN, 'link');
 
-  // 4. Remove parenthetical author-year citations
-  cleaned = stripParentheticalCitations(cleaned);
-
-  // 5. Deduplicate equation markers
+  // 4. Remove metadata junk (inline — works even without newlines)
   cleaned = cleaned.replace(
-    /\[equation\]\s*\[equation\]/g,
-    '[equation]'
+    /arXiv:\s*\d{4}\.\d{4,5}(?:v\d+)?\s*\[[^\]]*\]\s*\d+\s+\w+\s+\d{4}/g,
+    ''
   );
 
-  // 6. Normalize whitespace characters
+  // 5. Remove metadata junk lines
+  cleaned = stripMetadataJunk(cleaned);
+
+  // 6. Remove figure/table captions (inline too)
+  cleaned = cleaned.replace(
+    /(?:Figure|Fig\.|Table|Tab\.)\s*\d+[.:]\s*[^.]*?\./gi,
+    ''
+  );
+  cleaned = stripFigureTableCaptions(cleaned);
+
+  // 7. Remove parenthetical author-year citations
+  cleaned = stripParentheticalCitations(cleaned);
+
+  // 8. Remove square bracket numeric citations
+  cleaned = stripSquareBracketCitations(cleaned);
+
+  // 9. Deduplicate equation markers (handles any number in a row)
+  cleaned = cleaned.replace(
+    /(\[equation(?::[^\]]*?)?\]\s*)+/g,
+    (match) => {
+      // Keep only the first marker from a consecutive run
+      const first = match.match(/\[equation(?::[^\]]*?)?\]/);
+      return first ? first[0] + ' ' : match;
+    }
+  );
+
+  // 10. Convert Unicode superscript/subscript to words
+  cleaned = convertSuperSubscripts(cleaned);
+
+  // 11. Convert Unicode math symbols to spoken words
+  cleaned = convertUnicodeMathSymbols(cleaned);
+
+  // 12. Normalize whitespace characters
   cleaned = cleaned
     .replace(/\t/g, ' ')
     .replace(/\u00A0/g, ' ')
@@ -326,7 +535,7 @@ function cleanSpecialContent(text) {
     .replace(/\s{2,}/g, ' ')
     .replace(/\s+([,.;:!?])/g, '$1');
 
-  // 7. TTS-friendly symbol replacements
+  // 13. TTS-friendly symbol replacements
   cleaned = cleaned
     .replace(/(\d)%/g, '$1 percent')
     .replace(/(\d)°\s*C\b/g, '$1 degrees Celsius')
@@ -357,5 +566,11 @@ export {
   stripHeadersFooters,
   cleanEquations,
   cleanSpecialContent,
+  stripParentheticalCitations,
+  stripSquareBracketCitations,
+  stripMetadataJunk,
+  stripFigureTableCaptions,
+  convertSuperSubscripts,
+  convertUnicodeMathSymbols,
   isMathFont,
 };

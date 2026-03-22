@@ -1,4 +1,5 @@
 import { MSG } from '../utils/constants.js';
+import { normalizeVoice } from '../utils/voice-catalog.js';
 
 const serverUrlInput = document.getElementById('server-url');
 const statusDot = document.getElementById('status-dot');
@@ -7,9 +8,31 @@ const speedSelect = document.getElementById('default-speed');
 const voiceSelect = document.getElementById('default-voice');
 const autoResumeCheck = document.getElementById('auto-resume');
 const skipRefsCheck = document.getElementById('skip-references');
-const skipEqCheck = document.getElementById('skip-equations');
+const equationModeSelect = document.getElementById('equation-mode');
 const saveBtn = document.getElementById('btn-save');
 const saveStatus = document.getElementById('save-status');
+
+const accountLoggedOut = document.getElementById(
+  'account-logged-out'
+);
+const accountLoggedIn = document.getElementById(
+  'account-logged-in'
+);
+const accountAvatar = document.getElementById('account-avatar');
+const accountName = document.getElementById('account-name');
+const accountEmail = document.getElementById('account-email');
+const planBadge = document.getElementById('plan-badge');
+const usageText = document.getElementById('usage-text');
+const usageBarFill = document.getElementById('usage-bar-fill');
+const btnGoogleLogin = document.getElementById(
+  'btn-google-login'
+);
+const btnUpgrade = document.getElementById('btn-upgrade');
+const btnManageSub = document.getElementById('btn-manage-sub');
+const btnLogout = document.getElementById('btn-logout');
+const modeCloud = document.getElementById('mode-cloud');
+const modeLocal = document.getElementById('mode-local');
+const serverSection = document.getElementById('server-section');
 
 async function loadSettings() {
   return new Promise((resolve) => {
@@ -43,6 +66,7 @@ async function loadVoices() {
 
 function populateVoices(voices, selectedVoice) {
   voiceSelect.innerHTML = '';
+  const activeVoice = normalizeVoice(selectedVoice, voices);
   const prefixes = {
     af: 'American Female',
     am: 'American Male',
@@ -67,10 +91,14 @@ function populateVoices(voices, selectedVoice) {
       const name = v.substring(3).replace(/_/g, ' ');
       opt.textContent = name.charAt(0).toUpperCase()
         + name.slice(1);
-      if (v === selectedVoice) opt.selected = true;
+      if (v === activeVoice) opt.selected = true;
       optgroup.append(opt);
     }
     voiceSelect.append(optgroup);
+  }
+
+  if (voices.length > 0) {
+    voiceSelect.value = activeVoice;
   }
 }
 
@@ -105,7 +133,7 @@ saveBtn.addEventListener('click', async () => {
     defaultVoice: voiceSelect.value,
     autoResume: autoResumeCheck.checked,
     skipReferences: skipRefsCheck.checked,
-    skipEquations: skipEqCheck.checked,
+    equationMode: equationModeSelect.value,
   };
 
   chrome.runtime.sendMessage(
@@ -123,6 +151,134 @@ saveBtn.addEventListener('click', async () => {
 
 serverUrlInput.addEventListener('blur', updateServerStatus);
 
+function sendMsg(type, payload = {}) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      { type, payload },
+      (res) => {
+        if (chrome.runtime.lastError) resolve(null);
+        else resolve(res);
+      }
+    );
+  });
+}
+
+function renderAuthState(authState) {
+  if (!authState || !authState.loggedIn) {
+    accountLoggedOut.style.display = '';
+    accountLoggedIn.style.display = 'none';
+    return;
+  }
+
+  accountLoggedOut.style.display = 'none';
+  accountLoggedIn.style.display = '';
+
+  const u = authState.user;
+  if (u) {
+    accountName.textContent = u.name || '';
+    accountEmail.textContent = u.email || '';
+    if (u.pictureUrl) {
+      accountAvatar.src = u.pictureUrl;
+      accountAvatar.style.display = '';
+    } else {
+      accountAvatar.style.display = 'none';
+    }
+  }
+
+  const sub = authState.subscription;
+  if (sub) {
+    planBadge.textContent = sub.tierLabel || 'Free';
+    planBadge.className = 'options__plan-badge'
+      + (sub.tier !== 'free'
+        ? ' options__plan-badge--paid' : '');
+    if (sub.usage && sub.usage.charLimit !== null) {
+      const pct = Math.min(
+        100,
+        (sub.usage.charCount / sub.usage.charLimit) * 100
+      );
+      usageText.textContent =
+        `${formatNum(sub.usage.charCount)}`
+        + ` / ${formatNum(sub.usage.charLimit)} chars`;
+      usageBarFill.style.width = `${pct}%`;
+    } else {
+      usageText.textContent = 'Unlimited';
+      usageBarFill.style.width = '0%';
+    }
+
+    btnUpgrade.style.display =
+      sub.tier === 'unlimited' ? 'none' : '';
+    btnManageSub.style.display =
+      sub.tier === 'free' ? 'none' : '';
+  }
+}
+
+function renderTtsMode(mode) {
+  if (mode === 'cloud') {
+    modeCloud.checked = true;
+    serverSection.style.display = 'none';
+  } else {
+    modeLocal.checked = true;
+    serverSection.style.display = '';
+  }
+}
+
+function formatNum(n) {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(n);
+}
+
+btnGoogleLogin.addEventListener('click', async () => {
+  btnGoogleLogin.disabled = true;
+  btnGoogleLogin.textContent = 'Signing in...';
+  const res = await sendMsg(MSG.LOGIN);
+  btnGoogleLogin.disabled = false;
+  btnGoogleLogin.textContent = 'Sign in with Google';
+  if (res?.ok) {
+    const authState = await sendMsg(MSG.AUTH_STATE);
+    renderAuthState(authState);
+    renderTtsMode(authState?.ttsMode || 'local');
+  }
+});
+
+btnLogout.addEventListener('click', async () => {
+  await sendMsg(MSG.LOGOUT);
+  renderAuthState({ loggedIn: false });
+  renderTtsMode('cloud');
+});
+
+btnUpgrade.addEventListener('click', () => {
+  sendMsg(MSG.UPGRADE);
+});
+
+btnManageSub.addEventListener('click', async () => {
+  btnManageSub.disabled = true;
+  btnManageSub.textContent = 'Opening...';
+  await sendMsg(MSG.MANAGE_SUBSCRIPTION);
+  btnManageSub.disabled = false;
+  btnManageSub.textContent = 'Manage';
+});
+
+modeCloud.addEventListener('change', async () => {
+  const res = await sendMsg(MSG.SET_TTS_MODE, {
+    mode: 'cloud',
+  });
+  if (res?.ok) {
+    serverSection.style.display = 'none';
+  } else {
+    modeLocal.checked = true;
+  }
+});
+
+modeLocal.addEventListener('change', async () => {
+  const res = await sendMsg(MSG.SET_TTS_MODE, {
+    mode: 'local',
+  });
+  if (res?.ok) {
+    serverSection.style.display = '';
+    await updateServerStatus();
+  }
+});
+
 (async () => {
   const settings = await loadSettings();
   if (settings) {
@@ -130,7 +286,7 @@ serverUrlInput.addEventListener('blur', updateServerStatus);
     speedSelect.value = settings.defaultSpeed || 1.0;
     autoResumeCheck.checked = settings.autoResume !== false;
     skipRefsCheck.checked = settings.skipReferences !== false;
-    skipEqCheck.checked = settings.skipEquations === true;
+    equationModeSelect.value = settings.equationMode || 'skip';
   }
 
   const voices = await loadVoices();
@@ -141,5 +297,7 @@ serverUrlInput.addEventListener('blur', updateServerStatus);
     );
   }
 
-  await updateServerStatus();
+  const authState = await sendMsg(MSG.AUTH_STATE);
+  renderAuthState(authState);
+  renderTtsMode('cloud');
 })();

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Speakademic — Checkout Cancelled</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="options__accent-bar"></div>
+  <div class="options" style="text-align: center; padding-top: 60px;">
+    <div class="options__success-icon">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none"
+        stroke="#DA7756" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="15" y1="9" x2="9" y2="15"/>
+        <line x1="9" y1="9" x2="15" y2="15"/>
+      </svg>
+    </div>
+    <h1 class="options__title" style="justify-content: center;">
+      Checkout Cancelled
+    </h1>
+    <p class="options__hint" style="font-size: 1rem; margin: 16px 0 32px;">
+      No worries — you can upgrade anytime from Settings.
+    </p>
+    <button id="btn-go-settings" class="options__btn">
+      Go to Settings
+    </button>
+  </div>
+  <script>
+    document.getElementById('btn-go-settings').addEventListener(
+      'click', () => {
+        window.location.href = 'options.html';
+      }
+    );
+  </script>
+</body>
+</html>

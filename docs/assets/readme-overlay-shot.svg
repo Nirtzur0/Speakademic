@@ -149,9 +149,9 @@
       font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
       font-size="14"
     >
-      The transcript stays in view while the paper moves.
+      Transcript follows as you read.
     </text>
-    <rect x="708" y="438" width="204" height="26" rx="13"
+    <rect x="708" y="438" width="210" height="26" rx="13"
       fill="rgba(218,119,86,0.20)" />
     <text
       x="722"
@@ -161,7 +161,7 @@
       font-size="13"
       font-weight="600"
     >
-      Catch the active sentence and keep your place.
+      Active sentence stays in view.
     </text>
     <text
       x="712"
@@ -170,7 +170,7 @@
       font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
       font-size="14"
     >
-      Citations and equations stay out of the way.
+      Citations and noise cleaned away.
     </text>
 
     <text

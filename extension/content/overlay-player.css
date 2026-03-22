@@ -45,6 +45,10 @@
   gap: 10px;
 }
 
+.sp__shell--outline-left {
+  flex-direction: row-reverse;
+}
+
 .sp__shell--hidden {
   display: none;
 }
@@ -91,12 +95,12 @@
 .sp__panel {
   width: 330px;
   background: var(--sp-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
   border: 1px solid var(--sp-border);
   border-radius: var(--sp-radius);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.35),
+    0 12px 40px rgba(0, 0, 0, 0.4),
     0 2px 8px rgba(0, 0, 0, 0.2);
   overflow: hidden;
   display: flex;
@@ -107,9 +111,9 @@
 .sp__outline {
   width: 224px;
   max-height: calc(100vh - 40px);
-  background: rgba(24, 21, 19, 0.94);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(24, 21, 19, 0.88);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
   border: 1px solid var(--sp-border);
   border-radius: var(--sp-radius);
   box-shadow:
@@ -155,6 +159,29 @@
   cursor: grab;
   user-select: none;
   border-bottom: 1px solid var(--sp-border);
+}
+
+.sp__auth-indicator {
+  font-size: 10px;
+  color: var(--sp-text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 7px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.sp__server-indicator {
+  display: flex;
+  align-items: center;
+  padding: 4px;
+}
+
+.sp__server-indicator-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sp-text-muted);
+  transition: background 0.3s, box-shadow 0.3s;
 }
 
 .sp__header-actions {

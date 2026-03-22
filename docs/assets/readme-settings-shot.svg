@@ -138,7 +138,7 @@
     >
       then collapse it once you are back.
     </text>
-    <rect x="302" y="460" width="212" height="24" rx="12"
+    <rect x="302" y="460" width="174" height="24" rx="12"
       fill="rgba(218,119,86,0.20)" />
     <text
       x="318"
@@ -148,7 +148,7 @@
       font-size="13"
       font-weight="600"
     >
-      It stays out of the way until you need it.
+      Hidden until you need it.
     </text>
 
     <text
@@ -181,7 +181,7 @@
       font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
       font-size="11">2 Ontology of abstraction</text>
 
-    <rect x="646" y="370" width="148" height="48" rx="16"
+    <rect x="646" y="370" width="162" height="48" rx="16"
       fill="rgba(218,119,86,0.18)" />
     <text x="662" y="390" fill="#FAF9F6"
       font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"

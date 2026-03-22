@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup">
+    <!-- Top accent shimmer -->
+    <div class="popup__accent"></div>
+
+    <header class="popup__header">
+      <span class="popup__logo-dot"></span>
+      <span class="popup__title">Speakademic</span>
+      <span id="server-status" class="popup__server-status popup__server-status--checking"
+        title="Checking TTS server...">
+        <span class="popup__server-dot"></span>
+        <span class="popup__server-label" id="server-label">Checking...</span>
+      </span>
+    </header>
+
+    <!-- Hero row: two side-by-side action cards -->
+    <div class="popup__hero">
+      <!-- Sign-in / account card -->
+      <button id="btn-login" class="popup__card popup__card--account">
+        <svg class="popup__card-icon" width="18" height="18" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        <span class="popup__card-label">Sign in</span>
+      </button>
+
+      <!-- Logged-in account card (replaces sign-in) -->
+      <div id="account-logged-in" class="popup__card popup__card--profile" style="display:none">
+        <img id="avatar" class="popup__profile-avatar" src="" alt="">
+        <span id="account-name" class="popup__profile-name"></span>
+        <div class="popup__profile-usage">
+          <div class="popup__usage-track">
+            <div class="popup__usage-fill" id="usage-fill"></div>
+          </div>
+          <span id="usage-label" class="popup__usage-label"></span>
+        </div>
+      </div>
+
+      <!-- Read this page card -->
+      <button id="btn-read" class="popup__card popup__card--read">
+        <svg class="popup__card-icon" width="20" height="20" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        <span class="popup__card-label">Read page</span>
+      </button>
+    </div>
+
+    <!-- Bottom row: compact utility links -->
+    <div class="popup__links">
+      <button id="btn-settings" class="popup__link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1
+            1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65
+            0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9
+            19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65
+            1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1
+            0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2
+            2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65
+            0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51
+            1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65
+            1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1
+            0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        Settings
+      </button>
+
+      <span class="popup__link-sep"></span>
+
+      <button id="btn-shortcuts" class="popup__link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <rect x="2" y="4" width="20" height="16" rx="2"/>
+          <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8
+            12h.01M12 12h.01M16 12h.01M7 16h10"/>
+        </svg>
+        Shortcuts
+        <svg class="popup__chevron" width="10" height="10" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="3"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Expandable shortcuts panel -->
+    <div id="shortcuts-panel" class="popup__panel" style="display:none">
+      <div class="popup__shortcut">
+        <span class="popup__shortcut-label">Play / Pause</span>
+        <kbd class="popup__kbd">Alt Shift P</kbd>
+      </div>
+      <div class="popup__shortcut">
+        <span class="popup__shortcut-label">Stop</span>
+        <kbd class="popup__kbd">Alt Shift S</kbd>
+      </div>
+    </div>
+  </div>
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

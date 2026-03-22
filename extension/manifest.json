@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Speakademic",
-  "version": "0.2.0",
-  "description": "Read academic papers aloud with beautiful local TTS",
+  "version": "0.3.0",
+  "description": "Read academic papers and articles aloud with AI text-to-speech",
 
   "permissions": [
     "activeTab",
@@ -15,7 +15,12 @@
 
   "host_permissions": [
     "http://localhost:8880/*",
-    "http://127.0.0.1:8880/*"
+    "http://127.0.0.1:8880/*",
+    "http://localhost:3000/*",
+    "https://api.speakademic.com/*",
+    "https://arxiv.org/*",
+    "https://*.arxiv.org/*",
+    "<all_urls>"
   ],
 
   "background": {
@@ -24,6 +29,7 @@
   },
 
   "action": {
+    "default_popup": "popup/popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
@@ -55,7 +61,11 @@
 
   "web_accessible_resources": [
     {
-      "resources": ["lib/pdf.worker.mjs"],
+      "resources": [
+        "lib/pdf.worker.mjs",
+        "options/success.html",
+        "options/cancel.html"
+      ],
       "matches": ["<all_urls>"]
     }
   ]

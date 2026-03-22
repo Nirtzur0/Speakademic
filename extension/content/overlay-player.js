@@ -24,6 +24,9 @@
     SHOW_OVERLAY: 'SHOW_OVERLAY',
     STATUS_UPDATE: 'STATUS_UPDATE',
     SERVER_STATUS: 'SERVER_STATUS',
+    AUTH_STATE: 'AUTH_STATE',
+    UPGRADE: 'UPGRADE',
+    LOGIN: 'LOGIN',
   };
 
   const SPEED_OPTIONS = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
@@ -36,6 +39,8 @@
   };
   const TRANSCRIPT_SCROLL_EDGE_PX = 30;
   const TRANSCRIPT_SCROLL_LEAD_RATIO = 0.34;
+  const OUTLINE_EDGE_PADDING_PX = 12;
+  const OUTLINE_GAP_PX = 10;
   const OUTLINE_LABEL_OPEN = 'Hide outline';
   const OUTLINE_LABEL_CLOSED = 'Outline';
   const MAX_OUTLINE_LEVEL = 3;
@@ -130,6 +135,25 @@
     title.appendChild(dot);
     title.appendChild(document.createTextNode('Speakademic'));
     const headerActions = el('div', 'sp__header-actions');
+
+    // Server status indicator
+    const serverIndicator = el('span', 'sp__server-indicator');
+    serverIndicator.id = 'sp-server-indicator';
+    serverIndicator.title = 'Checking TTS server...';
+    const serverDot = el('span', 'sp__server-indicator-dot');
+    serverDot.id = 'sp-server-dot';
+    serverIndicator.append(serverDot);
+    headerActions.append(serverIndicator);
+
+    // Check server on load
+    chrome.runtime.sendMessage(
+      { type: MSG.SERVER_STATUS, payload: {} },
+      (resp) => {
+        if (chrome.runtime.lastError) return;
+        updateServerIndicator(resp?.online);
+      }
+    );
+
     _outlineToggleBtn = el('button', 'sp__header-btn');
     _outlineToggleBtn.textContent = OUTLINE_LABEL_CLOSED;
     _outlineToggleBtn.title = 'Toggle outline';
@@ -141,6 +165,15 @@
     minBtn.addEventListener('click', handleMinimize);
     headerActions.append(_outlineToggleBtn, minBtn);
     header.append(title, headerActions);
+
+    // Fetch auth state for indicator
+    chrome.runtime.sendMessage(
+      { type: MSG.AUTH_STATE, payload: {} },
+      (authState) => {
+        if (chrome.runtime.lastError || !authState) return;
+        updateAuthIndicator(authState);
+      }
+    );
     initDrag(header, false);
 
     // Controls
@@ -322,6 +355,7 @@
       _outlinePanel.style.animation = '';
     }
     requestAnimationFrame(syncOutlineHeight);
+    requestAnimationFrame(syncOutlinePlacement);
   }
 
   function showOverlay() {
@@ -369,6 +403,9 @@
     );
     if (isExpanded) {
       requestAnimationFrame(syncOutlineHeight);
+      requestAnimationFrame(syncOutlinePlacement);
+    } else if (_shell) {
+      _shell.classList.remove('sp__shell--outline-left');
     }
   }
 
@@ -388,6 +425,40 @@
       panelHeight + 28
     );
     _outlinePanel.style.height = targetHeight + 'px';
+  }
+
+  function syncOutlinePlacement() {
+    if (!_shell || !_panel || !_outlinePanel) {
+      return;
+    }
+
+    const isExpanded = !_outlinePanel.classList.contains(
+      'sp__outline--collapsed'
+    );
+    if (!isExpanded) {
+      _shell.classList.remove('sp__shell--outline-left');
+      return;
+    }
+
+    const panelRect = _panel.getBoundingClientRect();
+    const outlineWidth = _outlinePanel.offsetWidth || 224;
+    const placementHelper = window.SpeakademicOutlinePlacement;
+    const shouldPlaceLeft = placementHelper
+      && placementHelper.shouldPlaceOutlineLeft
+      ? placementHelper.shouldPlaceOutlineLeft({
+        panelLeft: panelRect.left,
+        panelRight: panelRect.right,
+        outlineWidth,
+        viewportWidth: window.innerWidth,
+        gapPx: OUTLINE_GAP_PX,
+        edgePaddingPx: OUTLINE_EDGE_PADDING_PX,
+      })
+      : false;
+
+    _shell.classList.toggle(
+      'sp__shell--outline-left',
+      shouldPlaceLeft
+    );
   }
 
   function initDrag(handle, allowButtonDrag) {
@@ -412,6 +483,7 @@
         (e.clientX - _dragOffset.x) + 'px';
       _root.style.top =
         (e.clientY - _dragOffset.y) + 'px';
+      syncOutlinePlacement();
     });
 
     document.addEventListener('mouseup', () => {
@@ -619,6 +691,26 @@
     _activeSentenceIndex = -1;
   }
 
+  // ---- Server status indicator ----
+
+  function updateServerIndicator(online) {
+    const dot = document.getElementById('sp-server-dot');
+    const indicator = document.getElementById(
+      'sp-server-indicator'
+    );
+    if (!dot || !indicator) return;
+
+    if (online) {
+      dot.style.background = '#4ade80';
+      dot.style.boxShadow = '0 0 6px rgba(74, 222, 128, 0.6)';
+      indicator.title = 'TTS server connected';
+    } else {
+      dot.style.background = '#f87171';
+      dot.style.boxShadow = '0 0 6px rgba(248, 113, 113, 0.5)';
+      indicator.title = 'TTS server offline';
+    }
+  }
+
   // ---- State update ----
 
   function updateOverlay(state) {
@@ -779,6 +871,12 @@
 
   function populateVoices(voices) {
     _voiceSelect.innerHTML = '';
+    const activeVoice = voices.includes(_voice)
+      ? _voice
+      : voices[0];
+    if (activeVoice) {
+      _voice = activeVoice;
+    }
     const groups = {};
 
     for (const v of voices) {
@@ -797,10 +895,14 @@
         const name = v.substring(3).replace(/_/g, ' ');
         opt.textContent = name.charAt(0).toUpperCase()
           + name.slice(1);
-        if (v === _voice) opt.selected = true;
+        if (v === activeVoice) opt.selected = true;
         optgroup.append(opt);
       }
       _voiceSelect.append(optgroup);
+    }
+
+    if (activeVoice) {
+      _voiceSelect.value = activeVoice;
     }
   }
 
@@ -861,6 +963,7 @@
     } else if (msg.type === MSG.SHOW_OVERLAY) {
       showOverlay();
     } else if (msg.type === MSG.SERVER_STATUS) {
+      updateServerIndicator(msg.payload.online);
       if (!msg.payload.online && _status === 'playing') {
         setTextDisplayMessage(
           'Server disconnected. Retrying\u2026'
@@ -872,6 +975,7 @@
   function init() {
     createOverlay();
     window.addEventListener('resize', syncOutlineHeight);
+    window.addEventListener('resize', syncOutlinePlacement);
 
     chrome.storage.local.get(['speed', 'voice'], (data) => {
       if (data.speed) {

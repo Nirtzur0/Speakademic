@@ -6,6 +6,19 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8321", "--directory", "extension"],
       "port": 8321
+    },
+    {
+      "name": "backend-api",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["src/server.js"],
+      "port": 3000,
+      "cwd": "backend",
+      "env": {
+        "DATABASE_URL": "postgres://localhost:5432/speakademic",
+        "JWT_SECRET": "dev-secret-for-testing-only",
+        "GOOGLE_CLIENT_ID": "test-client-id",
+        "TTS_SERVER_URL": "http://localhost:8880"
+      }
     }
   ]
 }

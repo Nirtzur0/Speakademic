@@ -1,0 +1,3 @@
+[submodule "equationeer"]
+	path = equationeer
+	url = https://github.com/Nirtzur0/equationeer.git

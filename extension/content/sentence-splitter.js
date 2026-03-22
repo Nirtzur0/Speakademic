@@ -22,10 +22,16 @@ function splitIntoSentences(text) {
 
   const sentences = [];
   let current = '';
+  let insideBracket = 0;
 
   for (let i = 0; i < normalized.length; i++) {
     const ch = normalized[i];
     current += ch;
+
+    // Track bracket depth so we never split inside [equation:...]
+    if (ch === '[') insideBracket++;
+    if (ch === ']') insideBracket = Math.max(0, insideBracket - 1);
+    if (insideBracket > 0) continue;
 
     if (ch !== '.' && ch !== '?' && ch !== '!') continue;
 

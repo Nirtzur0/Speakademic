@@ -12,19 +12,63 @@
       <span class="options__title-dot"></span>Speakademic Settings
     </h1>
 
-    <div class="options__section">
-      <h2 class="options__section-title">Server</h2>
-      <label class="options__field">
-        <span class="options__label">Server URL</span>
-        <input type="text" id="server-url"
-          class="options__input"
-          placeholder="http://localhost:8880">
-      </label>
-      <div id="server-status" class="options__status">
-        <span class="options__status-dot" id="status-dot">
-        </span>
-        <span id="status-text">Checking...</span>
+    <div class="options__section" id="account-section">
+      <h2 class="options__section-title">Account</h2>
+      <div id="account-logged-out">
+        <p class="options__hint">
+          Sign in to use cloud TTS and sync across devices.
+        </p>
+        <button id="btn-google-login" class="options__btn
+          options__btn--secondary">
+          Sign in with Google
+        </button>
       </div>
+      <div id="account-logged-in" style="display: none">
+        <div class="options__account-row">
+          <img id="account-avatar" class="options__avatar"
+            src="" alt="">
+          <div class="options__account-info">
+            <span id="account-name" class="options__account-name">
+            </span>
+            <span id="account-email"
+              class="options__account-email"></span>
+          </div>
+        </div>
+        <div class="options__plan-row">
+          <span class="options__plan-badge" id="plan-badge">
+            Free
+          </span>
+          <span class="options__usage-text" id="usage-text">
+          </span>
+        </div>
+        <div class="options__usage-bar-track">
+          <div class="options__usage-bar-fill"
+            id="usage-bar-fill"></div>
+        </div>
+        <div class="options__account-actions">
+          <button id="btn-upgrade" class="options__btn
+            options__btn--small">Upgrade</button>
+          <button id="btn-manage-sub" class="options__btn
+            options__btn--small options__btn--secondary">
+            Manage</button>
+          <button id="btn-logout" class="options__btn
+            options__btn--small options__btn--secondary">
+            Sign Out</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TTS mode and server sections hidden for cloud-only -->
+    <div style="display:none" id="tts-mode-section">
+      <input type="radio" name="tts-mode" value="cloud"
+        id="mode-cloud" checked>
+      <input type="radio" name="tts-mode" value="local"
+        id="mode-local">
+    </div>
+    <div style="display:none" id="server-section">
+      <input type="text" id="server-url" value="">
+      <span id="status-dot"></span>
+      <span id="status-text"></span>
     </div>
 
     <div class="options__section">
@@ -68,15 +112,15 @@
           Skip References section
         </span>
       </label>
-      <label class="options__toggle">
-        <input type="checkbox" id="skip-equations">
-        <span class="options__toggle-track">
-          <span class="options__toggle-thumb"></span>
-        </span>
-        <span class="options__label">
-          Skip equations (replace with silence)
-        </span>
-      </label>
+      <div class="options__field">
+        <label class="options__label" for="equation-mode">
+          Equations
+        </label>
+        <select id="equation-mode" class="options__select">
+          <option value="skip">Skip (silence)</option>
+          <option value="explain">Explain with AI</option>
+        </select>
+      </div>
     </div>
 
     <div class="options__actions">

@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: speakademic-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    startCommand: node src/db/migrate.js && node src/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: speakademic-db
+          property: connectionString
+      - key: DB_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRO_PRICE_ID
+        sync: false
+      - key: STRIPE_UNLIMITED_PRICE_ID
+        sync: false
+      - key: TTS_SERVER_URL
+        sync: false
+      - key: CORS_ORIGIN
+        value: "*"
+
+databases:
+  - name: speakademic-db
+    plan: free
+    databaseName: speakademic

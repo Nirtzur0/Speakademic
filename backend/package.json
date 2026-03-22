@@ -1,0 +1,25 @@
+{
+  "name": "speakademic-api",
+  "version": "1.0.0",
+  "description": "Speakademic backend API server",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "migrate": "node src/db/migrate.js"
+  },
+  "dependencies": {
+    "fastify": "^5.3.3",
+    "@fastify/cors": "^11.0.0",
+    "@fastify/rate-limit": "^10.2.0",
+    "pg": "^8.13.0",
+    "google-auth-library": "^9.14.0",
+    "jsonwebtoken": "^9.0.2",
+    "stripe": "^17.5.0",
+    "undici": "^7.3.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

@@ -54,23 +54,23 @@
     y="96"
     fill="#2D221E"
     font-family="Georgia, 'Times New Roman', serif"
-    font-size="42"
+    font-size="40"
     font-weight="700"
   >
-    A calmer way to listen to dense papers and articles.
+    A calmer way to listen to papers and articles.
   </text>
   <text
     x="112"
-    y="138"
+    y="146"
     fill="#6B5850"
     font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
-    font-size="19"
+    font-size="18"
   >
-    Speakademic reads papers and articles in clean local voices, trims
-    academic noise, and keeps your place.
+    Spotless AI voices, clutter cleanup, and quick section jumps that keep
+    your place.
   </text>
 
-  <g filter="url(#frameShadow)">
+  <g filter="url(#frameShadow)" transform="translate(0 18)">
     <rect x="82" y="156" width="1118" height="548" rx="34" fill="#FBF3EC" />
     <rect x="82" y="156" width="1118" height="56" rx="34" fill="#F2E1D4" />
     <rect x="82" y="186" width="1118" height="518" fill="#FBF3EC" />
@@ -93,11 +93,11 @@
     <rect x="476" y="576" width="106" height="14" rx="7" fill="#F2C6AF" />
   </g>
 
-  <g filter="url(#uiShadow)">
+  <g filter="url(#uiShadow)" transform="translate(0 18)">
     <rect x="674" y="176" width="356" height="430" rx="28" fill="url(#panel)" />
     <rect x="674" y="176" width="356" height="4" rx="2" fill="url(#accent)" />
-    <rect x="1044" y="176" width="86" height="458" rx="26" fill="url(#panel)" />
-    <rect x="1044" y="176" width="86" height="4" rx="2" fill="url(#accent)" />
+    <rect x="1040" y="176" width="98" height="458" rx="26" fill="url(#panel)" />
+    <rect x="1040" y="176" width="98" height="4" rx="2" fill="url(#accent)" />
 
     <text
       x="706"
@@ -149,19 +149,19 @@
       font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
       font-size="15"
     >
-      With the massive returns we see from scaling compute,
+      Papers read in a calm local voice.
     </text>
-    <rect x="720" y="424" width="264" height="28" rx="14"
+    <rect x="720" y="424" width="230" height="28" rx="14"
       fill="rgba(218,119,86,0.20)" />
     <text
       x="732"
       y="442"
       fill="#FAF9F6"
       font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
-      font-size="15"
+      font-size="14"
       font-weight="600"
     >
-      the prevailing paradigm assumes the right roles
+      Cleanup keeps listening smooth.
     </text>
     <text
       x="726"
@@ -170,7 +170,7 @@
       font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
       font-size="15"
     >
-      are enough to recover the qualitative texture of mind.
+      Jump by section, then keep moving.
     </text>
 
     <text
@@ -217,7 +217,7 @@
     </text>
 
     <text
-      x="1066"
+      x="1060"
       y="214"
       fill="#FAF9F6"
       font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
@@ -227,7 +227,7 @@
       Outline
     </text>
     <text
-      x="1066"
+      x="1060"
       y="236"
       fill="#A8A29E"
       font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
@@ -235,42 +235,43 @@
     >
       Jump by section
     </text>
-    <rect x="1058" y="260" width="58" height="42" rx="14" fill="rgba(250,249,246,0.04)" />
-    <text x="1070" y="286" fill="#FAF9F6"
+    <rect x="1054" y="260" width="70" height="42" rx="14"
+      fill="rgba(250,249,246,0.04)" />
+    <text x="1066" y="286" fill="#FAF9F6"
       font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
-      font-size="13" font-weight="600">1 Introduction</text>
-    <text x="1078" y="326" fill="#9F948D"
+      font-size="12" font-weight="600">1 Intro</text>
+    <text x="1066" y="326" fill="#9F948D"
       font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
-      font-size="12">2 Abstraction</text>
-    <rect x="1066" y="340" width="54" height="52" rx="16"
+      font-size="11">2 Articles</text>
+    <rect x="1058" y="340" width="62" height="60" rx="16"
       fill="rgba(218,119,86,0.16)" />
-    <text x="1074" y="360" fill="#FAF9F6"
+    <text x="1068" y="360" fill="#FAF9F6"
       font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
-      font-size="12" font-weight="700">2.1</text>
-    <text x="1074" y="380" fill="#FAF9F6"
+      font-size="11" font-weight="700">2.1 Clean</text>
+    <text x="1068" y="378" fill="#FAF9F6"
       font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
-      font-size="12" font-weight="700">Map vs.</text>
-    <text x="1074" y="398" fill="#FAF9F6"
+      font-size="11" font-weight="700">listening</text>
+    <text x="1068" y="396" fill="#FAF9F6"
       font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
-      font-size="12" font-weight="700">Territory</text>
-    <text x="1082" y="430" fill="#9F948D"
+      font-size="10">Current</text>
+    <text x="1066" y="430" fill="#9F948D"
       font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
-      font-size="12">2.2 Section</text>
-    <text x="1078" y="462" fill="#9F948D"
+      font-size="11">3 Voices</text>
+    <text x="1066" y="462" fill="#9F948D"
       font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
-      font-size="12">3 Circularity</text>
-    <text x="1082" y="494" fill="#9F948D"
+      font-size="11">4 Policy</text>
+    <text x="1066" y="494" fill="#9F948D"
       font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
-      font-size="12">3.1 Causation</text>
-    <text x="1078" y="526" fill="#9F948D"
+      font-size="11">5 Finish</text>
+    <text x="1066" y="526" fill="#9F948D"
       font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
-      font-size="12">4 Policy</text>
+      font-size="11">Appendix</text>
   </g>
 
-  <rect x="112" y="686" width="178" height="38" rx="19" fill="#FFF8F2" />
+  <rect x="112" y="700" width="178" height="38" rx="19" fill="#FFF8F2" />
   <text
     x="142"
-    y="710"
+    y="724"
     fill="#7D5C4F"
     font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
     font-size="15"
@@ -279,27 +280,27 @@
     PDFs + articles
   </text>
 
-  <rect x="308" y="686" width="268" height="38" rx="19" fill="#FFF8F2" />
+  <rect x="308" y="700" width="252" height="38" rx="19" fill="#FFF8F2" />
   <text
     x="334"
-    y="710"
+    y="724"
     fill="#7D5C4F"
     font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
     font-size="15"
     font-weight="600"
   >
-    Citation + equation cleanup
+    Cleanup for listening
   </text>
 
-  <rect x="594" y="686" width="198" height="38" rx="19" fill="#FFF8F2" />
+  <rect x="578" y="700" width="180" height="38" rx="19" fill="#FFF8F2" />
   <text
-    x="624"
-    y="710"
+    x="610"
+    y="724"
     fill="#7D5C4F"
     font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
     font-size="15"
     font-weight="600"
   >
-    Many voice profiles
+    Voice profiles
   </text>
 </svg>
