@@ -1,7 +1,11 @@
 const PAGE_WIDTH_FALLBACK = 612;
-const GAP_THRESHOLD_RATIO = 0.10;
+const GAP_THRESHOLD_RATIO = 0.008;
 const COLUMN_Y_TOLERANCE = 3;
 const SPANNING_WIDTH_RATIO = 0.6;
+// Fraction of median bucket count below which a bucket counts as "empty"
+const LOW_DENSITY_RATIO = 0.1;
+// Minimum fraction of non-spanning items on each side to confirm two columns
+const MIN_COLUMN_BALANCE = 0.15;
 
 function detectColumns(pageItems, pageWidth = PAGE_WIDTH_FALLBACK) {
   if (pageItems.length === 0) return pageItems;
@@ -30,6 +34,16 @@ function detectColumns(pageItems, pageWidth = PAGE_WIDTH_FALLBACK) {
     }
   }
 
+  // Validate column balance — both sides need substantial content
+  const nonSpanning = left.length + right.length;
+  if (nonSpanning < 4) {
+    return sortSingleColumn(pageItems);
+  }
+  const minSide = Math.min(left.length, right.length);
+  if (minSide / nonSpanning < MIN_COLUMN_BALANCE) {
+    return sortSingleColumn(pageItems);
+  }
+
   sortColumnItems(left);
   sortColumnItems(right);
 
@@ -37,12 +51,14 @@ function detectColumns(pageItems, pageWidth = PAGE_WIDTH_FALLBACK) {
 }
 
 function findColumnGap(items, pageWidth) {
-  const bucketCount = 100;
+  const bucketCount = 200;
   const bucketWidth = pageWidth / bucketCount;
   const histogram = new Array(bucketCount).fill(0);
 
+  let nonSpanningCount = 0;
   for (const item of items) {
     if (item.width > pageWidth * SPANNING_WIDTH_RATIO) continue;
+    nonSpanningCount++;
 
     const startBucket = Math.floor(item.x / bucketWidth);
     const endBucket = Math.floor(
@@ -58,16 +74,41 @@ function findColumnGap(items, pageWidth) {
     }
   }
 
+  // Need enough non-spanning items to meaningfully split into columns
+  if (nonSpanningCount < 4) return null;
+
   const middleStart = Math.floor(bucketCount * 0.3);
   const middleEnd = Math.floor(bucketCount * 0.7);
 
+  // Compute low-density threshold: buckets at or below this count
+  // are treated as "empty". This tolerates stray items (equation
+  // fragments, line numbers) that land in the gutter.
+  const middleBuckets = histogram.slice(middleStart, middleEnd + 1);
+  const nonZero = middleBuckets.filter((c) => c > 0).sort((a, b) => a - b);
+  const median = nonZero.length > 0
+    ? nonZero[Math.floor(nonZero.length / 2)]
+    : 0;
+  const lowThreshold = Math.max(1, Math.floor(median * LOW_DENSITY_RATIO));
+
+  // First pass: strict (zero only)
+  let gap = findBestGap(histogram, middleStart, middleEnd, bucketCount, 0);
+  if (gap) return { start: gap.start * bucketWidth, end: gap.end * bucketWidth };
+
+  // Second pass: relaxed (low-density tolerance)
+  gap = findBestGap(histogram, middleStart, middleEnd, bucketCount, lowThreshold);
+  if (gap) return { start: gap.start * bucketWidth, end: gap.end * bucketWidth };
+
+  return null;
+}
+
+function findBestGap(histogram, middleStart, middleEnd, bucketCount, maxCount) {
   let bestGapStart = -1;
   let bestGapEnd = -1;
   let bestGapLength = 0;
 
   let gapStart = -1;
   for (let b = middleStart; b <= middleEnd; b++) {
-    if (histogram[b] === 0) {
+    if (histogram[b] <= maxCount) {
       if (gapStart === -1) gapStart = b;
     } else {
       if (gapStart !== -1) {
@@ -94,10 +135,7 @@ function findColumnGap(items, pageWidth) {
   const gapWidthRatio = bestGapLength / bucketCount;
   if (gapWidthRatio < GAP_THRESHOLD_RATIO) return null;
 
-  return {
-    start: bestGapStart * bucketWidth,
-    end: bestGapEnd * bucketWidth,
-  };
+  return { start: bestGapStart, end: bestGapEnd };
 }
 
 function sortColumnItems(items) {
